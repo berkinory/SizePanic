@@ -1,0 +1,26 @@
+{
+  "name": "server",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
+    "check-types": "tsgo -b",
+    "dev": "bun run --hot src/index.ts",
+    "start": "./server"
+  },
+  "dependencies": {
+    "@SizePanic/api": "workspace:*",
+    "@SizePanic/env": "workspace:*",
+    "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/trpc": "^1.1.0",
+    "@hono/trpc-server": "^0.4.0",
+    "@trpc/server": "catalog:",
+    "dotenv": "catalog:",
+    "elysia": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@SizePanic/config": "workspace:*",
+    "@types/bun": "catalog:"
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "extends": "@SizePanic/config/tsconfig.base.json"
+}

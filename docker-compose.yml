@@ -1,0 +1,71 @@
+name: SizePanic
+
+services:
+  redis:
+    image: redis:8.0.5-alpine
+    container_name: SizePanic-redis
+    command: redis-server --maxmemory 512m --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      phase-network:
+        aliases:
+          - redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/server.Dockerfile
+    container_name: SizePanic-server
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - WEB_URL=${WEB_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/bin/wget", "--spider", "-q", "http://localhost:4000"]
+      start_period: 1s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/dashboard.Dockerfile
+      args:
+        - VITE_SERVER_URL=${VITE_SERVER_URL}
+    container_name: SizePanic-dashboard
+    ports:
+      - "4002:4002"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'bun -e "fetch(''http://localhost:4002'', {method: ''HEAD''}).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      start_period: 1s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  SizePanic-postgres-data:

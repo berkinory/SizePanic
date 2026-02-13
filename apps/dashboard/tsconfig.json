@@ -1,0 +1,13 @@
+{
+  "extends": "@SizePanic/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "rootDirs": ["."],
+    "paths": {
+      "*": ["./*"],
+      "@/*": ["./src/*"]
+    }
+  }
+}
