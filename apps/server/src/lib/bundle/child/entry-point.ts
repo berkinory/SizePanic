@@ -8,7 +8,8 @@ export function createEntryPoint(options: {
   const entryPath = join(options.packageDir, "__bundle_entry__.js");
   writeFileSync(
     entryPath,
-    `import * as p from '${options.packageName}'; console.log(p)`,
+    `export * from '${options.packageName}';
+export { default } from '${options.packageName}';`,
     "utf-8"
   );
   return entryPath;

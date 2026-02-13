@@ -45,10 +45,14 @@ async function main() {
         request.packageName,
         request.packageVersion
       );
+
       const packageDir = await extractTarball(tarball, `job-${request.jobId}`);
+
       const bundledCode = await bundlePackage(packageDir, request.subpath);
+
       const sizes = calculateSizes(bundledCode);
-      await cleanup(request.jobId);
+
+      cleanup(request.jobId);
 
       console.log(
         JSON.stringify({

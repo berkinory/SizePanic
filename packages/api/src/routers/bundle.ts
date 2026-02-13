@@ -32,13 +32,41 @@ const packageSchema = z.object({
   packageVersion: versionSchema,
 });
 
+async function processBatch<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(
+      batch.map((item) =>
+        processor(item).catch((error) => {
+          return {
+            error: {
+              code:
+                error instanceof TRPCError
+                  ? error.code
+                  : "INTERNAL_SERVER_ERROR",
+              message: error instanceof Error ? error.message : String(error),
+            },
+          } as R;
+        })
+      )
+    );
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 export const bundleRouter = router({
   analyze: publicProcedure
     .input(
       z.union([
         packageSchema,
         z.object({
-          packages: z.array(packageSchema).min(1).max(20),
+          packages: z.array(packageSchema).min(1).max(300),
         }),
       ])
     )
@@ -53,8 +81,9 @@ export const bundleRouter = router({
             },
           ];
 
-      const results = await Promise.all(
-        packagesToAnalyze.map(async ({ packageName, packageVersion }) => {
+      const results = await processBatch(
+        packagesToAnalyze,
+        async ({ packageName, packageVersion }) => {
           const resolved = await ctx.resolveVersion(
             packageName,
             packageVersion
@@ -62,13 +91,19 @@ export const bundleRouter = router({
           const result = await ctx.analyzePackage(packageName, resolved);
 
           if (!result.success) {
-            throw new TRPCError({
-              code: errorCodeMap[result.error.code] ?? "INTERNAL_SERVER_ERROR",
-              message: result.error.message,
-            });
+            return {
+              packageName,
+              packageVersion: resolved,
+              error: {
+                code: result.error.code,
+                message: result.error.message,
+              },
+            };
           }
 
           return {
+            packageName,
+            packageVersion: resolved,
             sizes: result.sizes,
             metadata: result.metadata,
             downloadTime: {
@@ -77,9 +112,27 @@ export const bundleRouter = router({
             },
             duration: result.duration,
           };
-        })
+        },
+        20
       );
 
-      return isBatch ? results : results[0];
+      if (!isBatch) {
+        const result = results[0];
+        if (!result) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "No result returned",
+          });
+        }
+        if ("error" in result && result.error) {
+          throw new TRPCError({
+            code: errorCodeMap[result.error.code] ?? "INTERNAL_SERVER_ERROR",
+            message: result.error.message,
+          });
+        }
+        return result;
+      }
+
+      return results;
     }),
 });

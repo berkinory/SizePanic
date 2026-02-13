@@ -58,10 +58,11 @@ function extractMetadata(
 export async function fetchTarball(
   packageName: string,
   packageVersion: string
-): Promise<{ tarball: Buffer; metadata: PackageMetadata }> {
+): Promise<{ tarball: Buffer; metadata: PackageMetadata; tarballUrl: string }> {
   const infoUrl = `${NPM_REGISTRY_URL}/${packageName}/${packageVersion}`;
 
   const infoRes = await fetch(infoUrl);
+
   if (!infoRes.ok) {
     throw new FetchError(
       `Failed to fetch package info: ${infoRes.status} ${infoRes.statusText}`
@@ -69,7 +70,6 @@ export async function fetchTarball(
   }
 
   const info = (await infoRes.json()) as NpmPackageInfo;
-  const tarballUrl = info.dist.tarball;
 
   if (info.dist.unpackedSize && info.dist.unpackedSize > MAX_EXTRACTED_SIZE) {
     throw new SizeLimitError(
@@ -77,7 +77,9 @@ export async function fetchTarball(
     );
   }
 
+  const tarballUrl = info.dist.tarball;
   const tarballRes = await fetch(tarballUrl);
+
   if (!tarballRes.ok) {
     throw new FetchError(
       `Failed to fetch tarball: ${tarballRes.status} ${tarballRes.statusText}`
@@ -102,7 +104,7 @@ export async function fetchTarball(
 
   const metadata = extractMetadata(info);
 
-  return { tarball: buffer, metadata };
+  return { tarball: buffer, metadata, tarballUrl };
 }
 
 export class FetchError extends Error {

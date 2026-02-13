@@ -25,17 +25,33 @@ export async function bundlePackage(
   ).json()) as PackageJson;
   const externals = extractAllDependencies(pkg);
 
+  let syntheticCode: string | null = null;
   try {
-    const code = await bundleWithSyntheticEntry(
+    syntheticCode = await bundleWithSyntheticEntry(
       packageDir,
       pkg.name || "unknown",
       subpath,
       externals
     );
-    if (code.length >= 100) return code;
   } catch {}
 
-  return bundleWithPackageResolution(packageDir, pkg, subpath, externals);
+  const resolvedCode = await bundleWithPackageResolution(
+    packageDir,
+    pkg,
+    subpath,
+    externals
+  );
+
+  if (!syntheticCode) return resolvedCode;
+  if (
+    syntheticCode.length < 1000 &&
+    resolvedCode.length > syntheticCode.length * 2
+  ) {
+    return resolvedCode;
+  }
+  return syntheticCode.length > resolvedCode.length
+    ? syntheticCode
+    : resolvedCode;
 }
 
 function extractAllDependencies(pkg: PackageJson): string[] {
@@ -170,9 +186,29 @@ function parseMissingModules(errors: string[]): string[] {
 function resolveEntryPoint(pkg: PackageJson): string | null {
   if (pkg.exports) {
     const entry = resolveExports(pkg.exports);
-    if (entry) return entry;
+    if (entry) {
+      if (entry.includes("bundler") || entry.includes("esm-bundler")) {
+        const browserProd = entry
+          .replace(/\.esm-bundler\.js$/, ".esm-browser.prod.js")
+          .replace(
+            /\.runtime\.esm-bundler\.js$/,
+            ".runtime.esm-browser.prod.js"
+          );
+        if (browserProd !== entry) return browserProd;
+      }
+      return entry;
+    }
   }
-  if (pkg.module) return pkg.module;
+  if (pkg.module) {
+    const mod = pkg.module;
+    if (mod.includes("bundler") || mod.includes("esm-bundler")) {
+      const browserProd = mod
+        .replace(/\.esm-bundler\.js$/, ".esm-browser.prod.js")
+        .replace(/\.runtime\.esm-bundler\.js$/, ".runtime.esm-browser.prod.js");
+      if (browserProd !== mod) return browserProd;
+    }
+    return mod;
+  }
   if (typeof pkg.browser === "string") return pkg.browser;
   if (pkg.main) return pkg.main;
   if (pkg.exports && typeof pkg.exports === "object") return null;
