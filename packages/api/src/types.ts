@@ -42,6 +42,8 @@ export type BundleErrorCode =
   | "FETCH_FAILED"
   | "BUNDLE_FAILED"
   | "UNSUPPORTED_PACKAGE"
+  | "NODE_BUILTIN_MODULES"
+  | "NO_ENTRY_POINT"
   | "UNKNOWN";
 
 export interface BundleError {

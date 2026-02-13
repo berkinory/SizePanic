@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { createEntryPoint } from "./entry-point";
-import { BundleError } from "./errors";
+import { BundleError, NodeBuiltinError, NoEntryPointError } from "./errors";
 
 interface PackageJson {
   main?: string;
@@ -26,6 +26,7 @@ export async function bundlePackage(
   const externals = extractAllDependencies(pkg);
 
   let syntheticCode: string | null = null;
+  let syntheticError: Error | null = null;
   try {
     syntheticCode = await bundleWithSyntheticEntry(
       packageDir,
@@ -33,25 +34,64 @@ export async function bundlePackage(
       subpath,
       externals
     );
-  } catch {}
-
-  const resolvedCode = await bundleWithPackageResolution(
-    packageDir,
-    pkg,
-    subpath,
-    externals
-  );
-
-  if (!syntheticCode) return resolvedCode;
-  if (
-    syntheticCode.length < 1000 &&
-    resolvedCode.length > syntheticCode.length * 2
-  ) {
-    return resolvedCode;
+  } catch (e) {
+    syntheticError = e instanceof Error ? e : new Error(String(e));
   }
-  return syntheticCode.length > resolvedCode.length
-    ? syntheticCode
-    : resolvedCode;
+
+  try {
+    const resolvedCode = await bundleWithPackageResolution(
+      packageDir,
+      pkg,
+      subpath,
+      externals
+    );
+
+    if (!syntheticCode) return resolvedCode;
+    if (
+      syntheticCode.length < 1000 &&
+      resolvedCode.length > syntheticCode.length * 2
+    ) {
+      return resolvedCode;
+    }
+    return syntheticCode.length > resolvedCode.length
+      ? syntheticCode
+      : resolvedCode;
+  } catch (e) {
+    if (syntheticError) {
+      if (syntheticError instanceof AggregateError) {
+        const errors = syntheticError.errors.map((err: Error) => err.message);
+        const hasNodeBuiltin = errors.some(
+          (msg: string) =>
+            msg.includes("Browser build cannot import Node.js builtin") ||
+            msg.includes("Browser build cannot require() Node.js builtin") ||
+            msg.includes("Browser polyfill for module")
+        );
+        if (hasNodeBuiltin) {
+          throw new NodeBuiltinError(
+            "Package uses Node.js built-in modules and cannot be bundled for browsers. It's likely a server-side or CLI tool."
+          );
+        }
+        throw new BundleError(errors.join(", ") || "Bundle failed");
+      }
+      throw syntheticError;
+    }
+    if (e instanceof AggregateError) {
+      const errors = e.errors.map((err: Error) => err.message);
+      const hasNodeBuiltin = errors.some(
+        (msg: string) =>
+          msg.includes("Browser build cannot import Node.js builtin") ||
+          msg.includes("Browser build cannot require() Node.js builtin") ||
+          msg.includes("Browser polyfill for module")
+      );
+      if (hasNodeBuiltin) {
+        throw new NodeBuiltinError(
+          "Package uses Node.js built-in modules and cannot be bundled for browsers. It's likely a server-side or CLI tool."
+        );
+      }
+      throw new BundleError(errors.join(", ") || "Bundle failed");
+    }
+    throw e;
+  }
 }
 
 function extractAllDependencies(pkg: PackageJson): string[] {
@@ -88,6 +128,23 @@ async function bundleWithSyntheticEntry(
   });
 
   if (!result.success) {
+    const errors = result.logs
+      .filter((l) => l.level === "error")
+      .map((l) => l.message);
+
+    const hasNodeBuiltin = errors.some(
+      (e) =>
+        e.includes("Browser build cannot import Node.js builtin") ||
+        e.includes("Browser build cannot require() Node.js builtin") ||
+        e.includes("Browser polyfill for module")
+    );
+
+    if (hasNodeBuiltin) {
+      throw new NodeBuiltinError(
+        "Package uses Node.js built-in modules and cannot be bundled for browsers. It's likely a server-side or CLI tool."
+      );
+    }
+
     throw new BundleError(
       result.logs
         .filter((l) => l.level === "error")
@@ -109,7 +166,7 @@ async function bundleWithPackageResolution(
     ? resolveSubpathExport(pkg, subpath)
     : resolveEntryPoint(pkg);
   if (!entryPoint) {
-    throw new BundleError(
+    throw new NoEntryPointError(
       subpath
         ? `Subpath "${subpath}" is not exported by this package`
         : noEntryMessage(pkg)
@@ -118,7 +175,7 @@ async function bundleWithPackageResolution(
 
   const entryPath = join(packageDir, entryPoint);
   if (!existsSync(entryPath)) {
-    throw new BundleError(
+    throw new NoEntryPointError(
       subpath
         ? `Subpath "${subpath}" resolved to "${entryPoint}" but the file was not found`
         : noEntryMessage(pkg)
@@ -149,6 +206,20 @@ async function bundleWithPackageResolution(
     const errors = result.logs
       .filter((l) => l.level === "error")
       .map((l) => l.message);
+
+    const hasNodeBuiltin = errors.some(
+      (e) =>
+        e.includes("Browser build cannot import Node.js builtin") ||
+        e.includes("Browser build cannot require() Node.js builtin") ||
+        e.includes("Browser polyfill for module")
+    );
+
+    if (hasNodeBuiltin) {
+      throw new NodeBuiltinError(
+        "Package uses Node.js built-in modules and cannot be bundled for browsers. It's likely a server-side or CLI tool."
+      );
+    }
+
     const missing = parseMissingModules(errors);
 
     if (missing.length > 0 && missing.length <= 10) {

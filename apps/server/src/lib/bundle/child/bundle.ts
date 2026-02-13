@@ -7,7 +7,12 @@ import type {
 import { shouldSkipPackage } from "./blacklist";
 import { bundlePackage } from "./bundler";
 import { cleanup } from "./cleanup";
-import { BundleError, UnsupportedPackageError } from "./errors";
+import {
+  BundleError,
+  NodeBuiltinError,
+  NoEntryPointError,
+  UnsupportedPackageError,
+} from "./errors";
 import { extractTarball } from "./extractor";
 import { FetchError, SizeLimitError, fetchTarball } from "./fetcher";
 import { calculateSizes } from "./size-calculator";
@@ -24,6 +29,8 @@ function mapErrorCode(error: unknown): BundleErrorCode {
   if (error instanceof FetchError) return "FETCH_FAILED";
   if (error instanceof SizeLimitError) return "SIZE_LIMIT_EXCEEDED";
   if (error instanceof UnsupportedPackageError) return "UNSUPPORTED_PACKAGE";
+  if (error instanceof NodeBuiltinError) return "NODE_BUILTIN_MODULES";
+  if (error instanceof NoEntryPointError) return "NO_ENTRY_POINT";
   if (error instanceof BundleError) return "BUNDLE_FAILED";
   return "UNKNOWN";
 }
