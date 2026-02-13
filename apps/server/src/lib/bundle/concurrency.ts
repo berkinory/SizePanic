@@ -27,4 +27,4 @@ class Semaphore {
   }
 }
 
-export const bundleSemaphore = new Semaphore(5);
+export const bundleSemaphore = new Semaphore(15);
