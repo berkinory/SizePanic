@@ -5,9 +5,7 @@
   "type": "module",
   "exports": {
     "./server": "./src/server.ts",
-    "./dashboard": "./src/dashboard.ts",
-    "./docs": "./src/docs.ts",
-    "./www": "./src/www.ts"
+    "./web": "./src/web.ts"
   },
   "scripts": {
     "check-types": "tsgo --noEmit"

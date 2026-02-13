@@ -49,13 +49,13 @@ services:
       retries: 3
     restart: unless-stopped
 
-  dashboard:
+  web:
     build:
       context: .
-      dockerfile: infrastructure/docker/dashboard.Dockerfile
+      dockerfile: infrastructure/docker/web.Dockerfile
       args:
         - VITE_SERVER_URL=${VITE_SERVER_URL}
-    container_name: SizePanic-dashboard
+    container_name: SizePanic-web
     ports:
       - "4002:4002"
     environment:

@@ -7,7 +7,7 @@ RUN bun add -g turbo
 
 COPY . .
 
-RUN turbo prune dashboard --docker
+RUN turbo prune web --docker
 
 FROM base AS installer
 WORKDIR /app
@@ -27,7 +27,7 @@ ARG VITE_SERVER_URL
 
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
 
-RUN bun run turbo build --filter=dashboard
+RUN bun run turbo build --filter=web
 
 FROM base AS runner
 WORKDIR /app
@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends adduser && \
     adduser --system --uid 1001 vite && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder --chown=vite:nodejs /app/apps/dashboard/dist ./dist
+COPY --from=builder --chown=vite:nodejs /app/apps/web/dist ./dist
 
 USER vite
 
