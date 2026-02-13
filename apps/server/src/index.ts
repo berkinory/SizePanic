@@ -5,6 +5,9 @@ import { env } from "@SizePanic/env/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
 
+import { analyzePackage } from "./lib/bundle/executor";
+import { resolveVersion } from "./lib/bundle/version";
+
 new Elysia()
   .use(
     cors({
@@ -14,15 +17,20 @@ new Elysia()
       origin: env.WEB_URL || "http://localhost:4002",
     })
   )
-  .all("/trpc/*", async (context) => {
-    const res = await fetchRequestHandler({
-      createContext: () => createContext({ context }),
-      endpoint: "/trpc",
-      req: context.request,
-      router: appRouter,
-    });
-    return res;
-  })
+  .all(
+    "/trpc/*",
+    async (context) => {
+      const res = await fetchRequestHandler({
+        createContext: () =>
+          createContext({ context, analyzePackage, resolveVersion }),
+        endpoint: "/trpc",
+        req: context.request,
+        router: appRouter,
+      });
+      return res;
+    },
+    { parse: "none" }
+  )
   .get("/", () => "OK")
   .listen(4000, () => {
     console.log("Server is running on http://localhost:4000");

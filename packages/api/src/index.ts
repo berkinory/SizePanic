@@ -7,3 +7,7 @@ export const t = initTRPC.context<Context>().create();
 export const { router } = t;
 
 export const publicProcedure = t.procedure;
+
+export * from "./types";
+export * from "./context";
+export * from "./routers/index";

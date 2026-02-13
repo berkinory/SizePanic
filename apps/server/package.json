@@ -13,14 +13,18 @@
     "@SizePanic/env": "workspace:*",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/trpc": "^1.1.0",
-    "@hono/trpc-server": "^0.4.0",
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
     "elysia": "catalog:",
+    "nanoid": "^5.1.6",
+    "pako": "^2.1.0",
+    "tar": "^7.5.7",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@SizePanic/config": "workspace:*",
-    "@types/bun": "catalog:"
+    "@types/bun": "catalog:",
+    "@types/pako": "^2.0.4",
+    "@types/tar": "^6.1.13"
   }
 }

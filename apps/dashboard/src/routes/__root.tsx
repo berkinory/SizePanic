@@ -6,11 +6,9 @@ import {
   Outlet,
   createRootRouteWithContext,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import type { trpc } from "@/utils/trpc";
 
-import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -30,13 +28,9 @@ const RootComponent = () => (
       disableTransitionOnChange
       storageKey="vite-ui-theme"
     >
-      <div className="grid grid-rows-[auto_1fr] h-svh">
-        <Header />
-        <Outlet />
-      </div>
+      <Outlet />
       <Toaster richColors />
     </ThemeProvider>
-    <TanStackRouterDevtools position="bottom-left" />
     <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
   </>
 );
@@ -44,18 +38,11 @@ const RootComponent = () => (
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
   head: () => ({
-    links: [
-      {
-        href: "/favicon.ico",
-        rel: "icon",
-      },
-    ],
+    links: [{ href: "/favicon.ico", rel: "icon" }],
     meta: [
+      { title: "SizePanic" },
       {
-        title: "SizePanic",
-      },
-      {
-        content: "SizePanic is a web application",
+        content: "Check the bundle size cost of npm packages",
         name: "description",
       },
     ],

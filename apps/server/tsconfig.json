@@ -9,5 +9,7 @@
     },
     "jsx": "react-jsx",
     "strictNullChecks": true
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["test-*.ts", "*.test.ts"]
 }
