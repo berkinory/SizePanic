@@ -27,6 +27,4 @@ class Semaphore {
   }
 }
 
-import { MAX_BUNDLE_CONCURRENCY } from "./constants";
-
-export const bundleSemaphore = new Semaphore(MAX_BUNDLE_CONCURRENCY);
+export const bundleSemaphore = new Semaphore(5);

@@ -1,8 +1,8 @@
 import type { PackageMetadata } from "@SizePanic/api";
 
-import { NPM_REGISTRY_URL } from "../constants";
+import { join } from "node:path";
 
-interface NpmPackageInfo {
+interface PackageJson {
   name: string;
   version: string;
   description?: string;
@@ -12,25 +12,24 @@ interface NpmPackageInfo {
   keywords?: string[];
   dependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
-  time: { [version: string]: string };
 }
 
-export async function fetchMetadata(
-  packageName: string,
-  packageVersion: string
+export async function readMetadata(
+  workDir: string,
+  packageName: string
 ): Promise<PackageMetadata> {
-  const infoUrl = `${NPM_REGISTRY_URL}/${packageName}/${packageVersion}`;
-  const res = await fetch(infoUrl);
+  const pkgPath = join(workDir, "node_modules", packageName, "package.json");
+  const file = Bun.file(pkgPath);
 
-  if (!res.ok) {
-    throw new FetchError(
-      `Failed to fetch package info: ${res.status} ${res.statusText}`
-    );
+  if (!(await file.exists())) {
+    throw new FetchError(`Package.json not found at ${pkgPath}`);
   }
 
-  const info = (await res.json()) as NpmPackageInfo;
-  const publishedAt = info.time?.[info.version] || new Date().toISOString();
+  const info = (await file.json()) as PackageJson;
+  return mapPackageInfo(info);
+}
 
+function mapPackageInfo(info: PackageJson): PackageMetadata {
   let repository = info.repository;
   if (typeof repository === "string") {
     repository = { type: "git", url: repository };
@@ -46,7 +45,6 @@ export async function fetchMetadata(
     keywords: info.keywords,
     dependencyCount: Object.keys(info.dependencies || {}).length,
     peerDependencyCount: Object.keys(info.peerDependencies || {}).length,
-    publishedAt,
   };
 }
 

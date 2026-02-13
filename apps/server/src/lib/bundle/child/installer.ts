@@ -3,10 +3,10 @@ import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { MAX_INSTALL_SIZE } from "../constants";
 import { InstallError, SizeLimitError } from "./errors";
 
 const INSTALL_TIMEOUT = 30_000;
+const MAX_INSTALL_SIZE = 150 * 1024 * 1024;
 
 interface InstallResult {
   workDir: string;

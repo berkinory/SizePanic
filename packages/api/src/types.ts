@@ -17,7 +17,6 @@ export interface PackageMetadata {
   keywords?: string[];
   dependencyCount: number;
   peerDependencyCount: number;
-  publishedAt: string;
 }
 
 export interface BundleRequest {

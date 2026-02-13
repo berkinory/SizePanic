@@ -1,5 +1,6 @@
-import { NPM_REGISTRY_URL } from "./constants";
 import { parsePackageName } from "./parse-package";
+
+const NPM_REGISTRY_URL = "https://registry.npmjs.org";
 
 interface NpmPackageMeta {
   "dist-tags": {

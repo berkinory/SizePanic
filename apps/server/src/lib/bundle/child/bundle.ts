@@ -17,7 +17,7 @@ import {
   SizeLimitError,
   UnsupportedPackageError,
 } from "./errors";
-import { FetchError, fetchMetadata } from "./fetcher";
+import { FetchError, readMetadata } from "./fetcher";
 import { installPackage } from "./installer";
 import { calculateSizes } from "./size-calculator";
 
@@ -61,16 +61,13 @@ async function main() {
       );
     }
 
-    const metadata = await fetchMetadata(
-      request.packageName,
-      request.packageVersion
-    );
-
     const { workDir, peerDeps } = await installPackage(
       request.packageName,
       request.packageVersion,
       request.jobId
     );
+
+    const metadata = await readMetadata(workDir, request.packageName);
 
     if (!request.subpath) {
       await validateRootExport(workDir, request.packageName);

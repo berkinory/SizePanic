@@ -3,9 +3,11 @@ import type { BundleRequest, BundleResponse } from "@SizePanic/api";
 import { nanoid } from "nanoid";
 import { spawn } from "node:child_process";
 
+import { cleanup } from "./child/cleanup";
 import { bundleSemaphore } from "./concurrency";
-import { BUNDLE_TIMEOUT } from "./constants";
 import { parsePackageName } from "./parse-package";
+
+const BUNDLE_TIMEOUT = 20_000;
 
 export async function analyzePackage(
   packageName: string,
@@ -49,10 +51,14 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
       stdout += data.toString();
     });
 
-    child.on("close", (code) => {
+    child.on("close", async (code) => {
       clearTimeout(timeout);
 
       if (timedOut) {
+        await cleanup(request.jobId).catch((e) =>
+          console.error("Cleanup failed after timeout:", e)
+        );
+
         resolve({
           success: false,
           error: {
@@ -69,6 +75,10 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
       }
 
       if (code !== 0) {
+        await cleanup(request.jobId).catch((e) =>
+          console.error("Cleanup failed after crash:", e)
+        );
+
         resolve({
           success: false,
           error: {
@@ -88,6 +98,10 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
         const response = JSON.parse(stdout) as BundleResponse;
         resolve(response);
       } catch {
+        await cleanup(request.jobId).catch((e) =>
+          console.error("Cleanup failed after parse error:", e)
+        );
+
         resolve({
           success: false,
           error: {
