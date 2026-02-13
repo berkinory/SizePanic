@@ -44,7 +44,14 @@ function runBunInstall(cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(
       "bun",
-      ["install", "--ignore-scripts", "--omit=peer", "--omit=optional"],
+      [
+        "install",
+        "--production",
+        "--ignore-scripts",
+        "--omit=peer",
+        "--omit=optional",
+        "--no-save",
+      ],
       {
         cwd,
         stdio: ["ignore", "ignore", "pipe"],
