@@ -1,19 +1,15 @@
 export interface BlacklistRule {
   test: RegExp;
   reason: string;
+  allowSubpaths?: boolean;
 }
 
 const BLACKLIST: RegExp[] = [
-  /^(webpack|vite|esbuild|rollup|parcel)$/,
   /^@(vitejs|rollup)\//,
-  /^(nuxt|next|gatsby)$/,
-  /^@(nuxt|remix-run)\//,
   /^(react-scripts|polymer-cli|razzle)$/,
   /-(webpack|rollup|vite)-plugin$/,
   /-loader$/,
   /^(yarn|npm|pnpm)$/,
-  /^(react-icons|styled-icons|three)$/,
-  /^@babylonjs\//,
   /^devextreme$/,
   /hack-cheats|hacks?-cheats?|hack-unlimited|generator-unlimited|hack-\d+|cheat-\d+|-hacks?-/,
 ];
@@ -27,28 +23,34 @@ const UNSUPPORTED: BlacklistRule[] = [
     test: /^(webpack|vite|esbuild|rollup|parcel)$/,
     reason:
       "Build tools are not meant to be bundled - they're used to create bundles.",
+    allowSubpaths: true,
   },
   {
     test: /^(next|nuxt|gatsby)$/,
     reason:
       "Meta-frameworks include build tools and are not meant to be bundled.",
+    allowSubpaths: true,
   },
   {
-    test: /^react-icons$/,
-    reason: "This package is too large to analyze efficiently.",
-  },
-  {
-    test: /^three$/,
-    reason: "This 3D library is too large to analyze efficiently.",
+    test: /^@(nuxt|remix-run)\//,
+    reason:
+      "Meta-framework packages include build tools and are not meant to be bundled.",
+    allowSubpaths: true,
   },
 ];
 
-export function shouldSkipPackage(name: string): {
+export function shouldSkipPackage(
+  name: string,
+  subpath?: string
+): {
   skip: boolean;
   reason?: string;
 } {
+  const hasSubpath = !!subpath;
   const unsupported = UNSUPPORTED.find((r) => r.test.test(name));
-  if (unsupported) return { skip: true, reason: unsupported.reason };
+  if (unsupported && !(hasSubpath && unsupported.allowSubpaths)) {
+    return { skip: true, reason: unsupported.reason };
+  }
   if (BLACKLIST.some((p) => p.test(name)))
     return {
       skip: true,

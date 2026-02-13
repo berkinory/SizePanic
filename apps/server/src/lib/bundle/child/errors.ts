@@ -13,3 +13,11 @@ export class NodeBuiltinError extends Error {
 export class NoEntryPointError extends Error {
   override name = "NoEntryPointError";
 }
+
+export class InstallError extends Error {
+  override name = "InstallError";
+}
+
+export class SizeLimitError extends Error {
+  override name = "SizeLimitError";
+}

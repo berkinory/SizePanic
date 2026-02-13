@@ -12,6 +12,7 @@ function downloadTime(bytes: number, kbps: number): number {
 
 const errorCodeMap: Record<string, TRPCError["code"]> = {
   FETCH_FAILED: "NOT_FOUND",
+  INSTALL_FAILED: "INTERNAL_SERVER_ERROR",
   SIZE_LIMIT_EXCEEDED: "PAYLOAD_TOO_LARGE",
   TIMEOUT: "TIMEOUT",
   BUNDLE_FAILED: "INTERNAL_SERVER_ERROR",
