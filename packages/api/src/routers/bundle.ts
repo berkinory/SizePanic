@@ -69,7 +69,7 @@ export const bundleRouter = router({
       z.union([
         packageSchema,
         z.object({
-          packages: z.array(packageSchema).min(1).max(300),
+          packages: z.array(packageSchema).min(1).max(50),
         }),
       ])
     )

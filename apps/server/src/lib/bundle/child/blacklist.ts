@@ -21,17 +21,18 @@ const UNSUPPORTED: BlacklistRule[] = [
   },
   {
     test: /^(webpack|vite|esbuild|rollup|parcel|turbo|lerna|nx)$/,
-    reason:
-      "Build tools and monorepo managers are not meant to be bundled.",
+    reason: "Build tools and monorepo managers are not meant to be bundled.",
     allowSubpaths: true,
   },
   {
     test: /^(typescript|ts-node|babel-core|@babel\/core|swc|@swc\/core)$/,
-    reason: "Compilers and transpilers are development tools, not runtime libraries.",
+    reason:
+      "Compilers and transpilers are development tools, not runtime libraries.",
   },
   {
     test: /^(jest|vitest|mocha|chai|cypress|playwright|puppeteer|ava|karma|jasmine)$/,
-    reason: "Testing frameworks and runners should not be included in production bundles.",
+    reason:
+      "Testing frameworks and runners should not be included in production bundles.",
   },
   {
     test: /^(eslint|prettier|stylelint|jshint|tslint|@eslint|@typescript-eslint)/,
@@ -39,11 +40,13 @@ const UNSUPPORTED: BlacklistRule[] = [
   },
   {
     test: /^(aws-sdk|googleapis|azure-sdk|@azure|@google-cloud)/,
-    reason: "Monolithic SDKs are too large. Use modular imports (e.g. @aws-sdk/client-s3) instead.",
+    reason:
+      "Monolithic SDKs are too large. Use modular imports (e.g. @aws-sdk/client-s3) instead.",
   },
   {
     test: /^(jsdom|canvas|sharp|phantomjs|selenium-webdriver)$/,
-    reason: "Packages relying on heavy native bindings or browser simulation are not suitable for browser bundles.",
+    reason:
+      "Packages relying on heavy native bindings or browser simulation are not suitable for browser bundles.",
   },
   {
     test: /^(electron|tauri|nw\.js)$/,

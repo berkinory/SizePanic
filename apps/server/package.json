@@ -16,6 +16,7 @@
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
     "elysia": "catalog:",
+    "elysia-rate-limit": "^4.5.0",
     "nanoid": "^5.1.6",
     "zod": "catalog:"
   },
