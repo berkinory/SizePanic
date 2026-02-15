@@ -12,7 +12,7 @@ export type AnalyzePackageFn = (
 export type ResolveVersionFn = (
   packageName: string,
   version: string | undefined
-) => Promise<string>;
+) => string;
 
 export interface CreateContextOptions {
   context: ElysiaContext;

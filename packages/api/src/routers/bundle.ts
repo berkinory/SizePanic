@@ -21,12 +21,11 @@ const errorCodeMap: Record<string, TRPCError["code"]> = {
   UNKNOWN: "INTERNAL_SERVER_ERROR",
 };
 
-const semverRegex = /^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/;
-
 const versionSchema = z
   .string()
-  .refine((v) => v === "latest" || semverRegex.test(v), {
-    message: "Version must be a valid semver (e.g. 1.0.0) or 'latest'",
+  .min(1)
+  .refine((v) => v === "latest" || /^[\d.*x^~>=< ||-]+/.test(v), {
+    message: "Version must be a valid semver version or range, or 'latest'",
   })
   .optional();
 
@@ -87,16 +86,13 @@ export const bundleRouter = router({
       const results = await processBatch(
         packagesToAnalyze,
         async ({ packageName, packageVersion }) => {
-          const resolved = await ctx.resolveVersion(
-            packageName,
-            packageVersion
-          );
-          const result = await ctx.analyzePackage(packageName, resolved);
+          const version = ctx.resolveVersion(packageName, packageVersion);
+          const result = await ctx.analyzePackage(packageName, version);
 
           if (!result.success) {
             return {
               packageName,
-              packageVersion: resolved,
+              packageVersion: version,
               error: {
                 code: result.error.code,
                 message: result.error.message,
@@ -106,7 +102,7 @@ export const bundleRouter = router({
 
           return {
             packageName,
-            packageVersion: resolved,
+            packageVersion: result.metadata.version,
             sizes: result.sizes,
             metadata: result.metadata,
             downloadTime: {

@@ -5,6 +5,25 @@ import { join } from "node:path";
 
 import { InstallError, SizeLimitError } from "./errors";
 
+const VERSION_NOT_FOUND =
+  /No version matching "(.+)" found for specifier "(.+)"/;
+const PACKAGE_NOT_FOUND = /GET .+ - 404/;
+
+function parseInstallError(stderr: string): string {
+  const versionMatch = stderr.match(VERSION_NOT_FOUND);
+  if (versionMatch) {
+    return `No version of "${versionMatch[2]}" satisfies "${versionMatch[1]}"`;
+  }
+
+  if (PACKAGE_NOT_FOUND.test(stderr)) {
+    const nameMatch = stderr.match(/error: (.+?) failed to resolve/);
+    const pkg = nameMatch ? nameMatch[1] : "unknown";
+    return `Package "${pkg}" not found on npm`;
+  }
+
+  return `Install failed: ${stderr.slice(0, 300)}`;
+}
+
 const INSTALL_TIMEOUT = 30_000;
 const MAX_INSTALL_SIZE = 100 * 1024 * 1024;
 
@@ -79,11 +98,7 @@ function runBunInstall(cwd: string): Promise<void> {
       }
 
       if (code !== 0) {
-        reject(
-          new InstallError(
-            `bun install failed (code ${code}): ${stderr.slice(0, 500)}`
-          )
-        );
+        reject(new InstallError(parseInstallError(stderr)));
         return;
       }
 

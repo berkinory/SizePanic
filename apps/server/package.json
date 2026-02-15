@@ -18,10 +18,12 @@
     "elysia": "catalog:",
     "elysia-rate-limit": "^4.5.0",
     "nanoid": "^5.1.6",
+    "semver": "^7.7.4",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@SizePanic/config": "workspace:*",
-    "@types/bun": "catalog:"
+    "@types/bun": "catalog:",
+    "@types/semver": "^7.7.1"
   }
 }
