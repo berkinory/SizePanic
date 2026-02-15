@@ -6,7 +6,8 @@
     "build": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "check-types": "tsgo -b",
     "dev": "bun run --hot src/index.ts",
-    "start": "./server"
+    "start": "./server",
+    "test": "bun test"
   },
   "dependencies": {
     "@SizePanic/api": "workspace:*",
