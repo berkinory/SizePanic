@@ -5,9 +5,9 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,14 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 const VERSION_RE = /^[\d.*x^~>=< ||-]+/;
+const MAX_PACKAGE_JSON_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PACKAGE_JSON_MIME_TYPES = new Set([
+  "application/json",
+  "text/json",
+  "text/plain",
+  "",
+]);
+const NON_NPM_PROTOCOL_PREFIXES = ["workspace:", "file:", "link:", "portal:"];
 
 type PackageInput = { name: string; version?: string };
 
@@ -41,6 +49,34 @@ type AnalyzeBatchItem =
     };
 
 type ViewState = "entry" | "single" | "batch";
+
+type UploadedPackageJson = {
+  name?: string;
+  dependencies?: Record<string, unknown>;
+  devDependencies?: Record<string, unknown>;
+  workspaces?: {
+    catalog?: Record<string, unknown>;
+  };
+  catalog?: Record<string, unknown>;
+  pnpm?: {
+    catalog?: Record<string, unknown>;
+  };
+};
+
+function validatePackageJsonFile(file: File | null | undefined): string | null {
+  if (!file) return "No file selected";
+  if (file.name !== "package.json") {
+    return "Only package.json files are allowed";
+  }
+  if (file.size === 0) return "package.json is empty";
+  if (file.size > MAX_PACKAGE_JSON_SIZE_BYTES) {
+    return "package.json must be 5 MB or smaller";
+  }
+  if (!ALLOWED_PACKAGE_JSON_MIME_TYPES.has(file.type)) {
+    return "Invalid file type for package.json";
+  }
+  return null;
+}
 
 function parseInput(raw: string): PackageInput | null {
   const trimmed = raw.trim();
@@ -63,24 +99,91 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function toStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => typeof entry === "string") as [
+      string,
+      string,
+    ][]
+  );
+}
+
+function getCatalogMap(parsed: UploadedPackageJson): Record<string, string> {
+  return {
+    ...toStringRecord(parsed.catalog),
+    ...toStringRecord(parsed.pnpm?.catalog),
+    ...toStringRecord(parsed.workspaces?.catalog),
+  };
+}
+
+function normalizeDependencyVersion(
+  packageName: string,
+  rawVersion: string,
+  catalogMap: Record<string, string>
+): string | null {
+  if (
+    NON_NPM_PROTOCOL_PREFIXES.some((prefix) => rawVersion.startsWith(prefix))
+  ) {
+    return null;
+  }
+
+  if (rawVersion === "latest" || VERSION_RE.test(rawVersion)) return rawVersion;
+
+  if (rawVersion.startsWith("catalog:")) {
+    const catalogKey =
+      rawVersion.slice("catalog:".length).trim() || packageName;
+    const catalogVersion = catalogMap[catalogKey];
+    if (!catalogVersion) return "latest";
+    if (
+      NON_NPM_PROTOCOL_PREFIXES.some((prefix) =>
+        catalogVersion.startsWith(prefix)
+      )
+    ) {
+      return null;
+    }
+    if (catalogVersion === "latest" || VERSION_RE.test(catalogVersion)) {
+      return catalogVersion;
+    }
+    return "latest";
+  }
+
+  return "latest";
+}
+
 async function parsePackageJsonFile(file: File): Promise<PackageInput[]> {
   const content = await file.text();
-  const parsed = JSON.parse(content) as {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-  };
+  const parsed = JSON.parse(content) as UploadedPackageJson;
+  const catalogMap = getCatalogMap(parsed);
 
-  const merged = {
-    ...(parsed.dependencies ?? {}),
-    ...(parsed.devDependencies ?? {}),
-  };
+  const dependencies = toStringRecord(parsed.dependencies);
+  const devDependencies = toStringRecord(parsed.devDependencies);
+  const merged = new Map<string, string>();
 
-  return Object.entries(merged)
+  for (const [name, version] of Object.entries(dependencies)) {
+    const normalizedVersion = normalizeDependencyVersion(
+      name,
+      version,
+      catalogMap
+    );
+    if (!normalizedVersion) continue;
+    merged.set(name, normalizedVersion);
+  }
+
+  for (const [name, version] of Object.entries(devDependencies)) {
+    if (merged.has(name)) continue;
+    const normalizedVersion = normalizeDependencyVersion(
+      name,
+      version,
+      catalogMap
+    );
+    if (!normalizedVersion) continue;
+    merged.set(name, normalizedVersion);
+  }
+
+  return Array.from(merged.entries())
     .slice(0, 50)
-    .map(([name, version]) => {
-      if (typeof version !== "string") return { name };
-      return { name, version };
-    });
+    .map(([name, version]) => ({ name, version }));
 }
 
 const stagger = {
@@ -125,11 +228,54 @@ export default function PackageSearch() {
   const [singleResult, setSingleResult] = useState<AnalyzeSuccess | null>(null);
   const [batchResults, setBatchResults] = useState<AnalyzeBatchItem[]>([]);
   const [singleFromBatch, setSingleFromBatch] = useState(false);
+  const singleResultRef = useRef<AnalyzeSuccess | null>(null);
+  const batchResultsRef = useRef<AnalyzeBatchItem[]>([]);
 
   const parsedInput = parseInput(packageInput);
   const isInvalid = packageInput.trim().length > 0 && !parsedInput;
   const analyzeMutation = useMutation(trpc.bundle.analyze.mutationOptions());
   const isLoading = analyzeMutation.isPending || isParsingUpload;
+
+  const setViewWithHistory = (
+    nextView: ViewState,
+    mode: "push" | "replace" = "push"
+  ) => {
+    setView(nextView);
+    const state = { view: nextView };
+    if (mode === "replace") {
+      window.history.replaceState(state, "", window.location.href);
+      return;
+    }
+    window.history.pushState(state, "", window.location.href);
+  };
+
+  useEffect(() => {
+    singleResultRef.current = singleResult;
+  }, [singleResult]);
+
+  useEffect(() => {
+    batchResultsRef.current = batchResults;
+  }, [batchResults]);
+
+  useEffect(() => {
+    window.history.replaceState({ view: "entry" }, "", window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      const nextView = event.state?.view as ViewState | undefined;
+      if (nextView === "single" && !singleResultRef.current) {
+        setView("entry");
+        return;
+      }
+      if (nextView === "batch" && batchResultsRef.current.length === 0) {
+        setView("entry");
+        return;
+      }
+      setView(nextView ?? "entry");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleBoxClick = () => fileInputRef.current?.click();
 
@@ -142,7 +288,7 @@ export default function PackageSearch() {
       if (Array.isArray(result)) return;
       setSingleFromBatch(false);
       setSingleResult(result as AnalyzeSuccess);
-      setView("single");
+      setViewWithHistory("single");
     } catch {
       // QueryClient onError handles error toast.
     }
@@ -162,7 +308,7 @@ export default function PackageSearch() {
       });
       if (!Array.isArray(result)) return;
       setBatchResults(result as AnalyzeBatchItem[]);
-      setView("batch");
+      setViewWithHistory("batch");
     } catch {
       // QueryClient onError handles error toast.
     }
@@ -183,11 +329,16 @@ export default function PackageSearch() {
   };
 
   const handleUpload = async (file: File | null | undefined) => {
-    if (!file?.name.endsWith(".json") || isLoading) return;
+    if (isLoading) return;
+    const validationError = validatePackageJsonFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     setPackageInput("");
     setIsParsingUpload(true);
     try {
-      const packages = await parsePackageJsonFile(file);
+      const packages = await parsePackageJsonFile(file as File);
       await runBatchAnalyze(packages);
     } catch {
       toast.error("Could not parse package.json");
@@ -209,6 +360,10 @@ export default function PackageSearch() {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (e.dataTransfer.files.length !== 1) {
+      toast.error("Drop exactly one package.json file");
+      return;
+    }
     await handleUpload(e.dataTransfer.files[0]);
   };
 
@@ -226,22 +381,24 @@ export default function PackageSearch() {
         <p className="text-foreground/60 mt-3 text-base">
           check what that npm install really costs
         </p>
-        <div className="relative mt-5 overflow-hidden rounded-lg border border-border/60 bg-background/70 py-2">
-          <motion.div
-            className="flex w-max gap-2 px-2"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          >
-            {[...INSTALL_TICKER, ...INSTALL_TICKER].map((item, index) => (
-              <span
-                key={`${item}-${index}`}
-                className="rounded-md border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-[11px] text-foreground/70"
-              >
-                {item}
-              </span>
-            ))}
-          </motion.div>
-        </div>
+        {view === "entry" && (
+          <div className="relative mt-5 overflow-hidden rounded-lg border border-border/60 bg-background/70 py-2">
+            <motion.div
+              className="flex w-max gap-2 px-2"
+              animate={{ x: ["0%", "-50%"] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+            >
+              {[...INSTALL_TICKER, ...INSTALL_TICKER].map((item, index) => (
+                <span
+                  key={`${item}-${index}`}
+                  className="rounded-md border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-[11px] text-foreground/70"
+                >
+                  {item}
+                </span>
+              ))}
+            </motion.div>
+          </div>
+        )}
         <a
           href={GITHUB_URL}
           target="_blank"
@@ -255,7 +412,10 @@ export default function PackageSearch() {
 
       <div className="relative min-h-[20rem]">
         <motion.div
-          animate={{ opacity: isLoading ? 0.2 : 1, filter: isLoading ? "blur(1px)" : "blur(0px)" }}
+          animate={{
+            opacity: isLoading ? 0.2 : 1,
+            filter: isLoading ? "blur(1px)" : "blur(0px)",
+          }}
           transition={{ duration: 0.2 }}
           className={cn(isLoading && "pointer-events-none")}
         >
@@ -334,7 +494,10 @@ export default function PackageSearch() {
                 </div>
               </motion.div>
 
-              <motion.div variants={fade} className="flex items-center gap-4 my-8">
+              <motion.div
+                variants={fade}
+                className="flex items-center gap-4 my-8"
+              >
                 <div className="h-px flex-1 bg-border" />
                 <span className="text-[11px] text-foreground/20 uppercase tracking-[0.2em] select-none">
                   or
@@ -376,7 +539,7 @@ export default function PackageSearch() {
                     id="fileUpload"
                     ref={fileInputRef}
                     className="hidden"
-                    accept=".json"
+                    accept="application/json,.json"
                     onChange={(e) => void handleUpload(e.target.files?.[0])}
                   />
                 </div>
@@ -385,7 +548,10 @@ export default function PackageSearch() {
           )}
 
           {view === "single" && singleResult && (
-            <motion.div variants={fade} className="rounded-xl border border-border p-5 space-y-4">
+            <motion.div
+              variants={fade}
+              className="rounded-xl border border-border p-5 space-y-4"
+            >
               <div>
                 <p className="font-mono text-sm text-foreground/80">
                   {singleResult.packageName}@{singleResult.packageVersion}
@@ -396,51 +562,78 @@ export default function PackageSearch() {
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border border-border/70 py-2">
-                  <p className="text-[10px] uppercase text-foreground/40">gzip</p>
-                  <p className="font-mono text-sm">{formatBytes(singleResult.sizes.gzip)}</p>
+                  <p className="text-[10px] uppercase text-foreground/40">
+                    gzip
+                  </p>
+                  <p className="font-mono text-sm">
+                    {formatBytes(singleResult.sizes.gzip)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/70 py-2">
-                  <p className="text-[10px] uppercase text-foreground/40">brotli</p>
-                  <p className="font-mono text-sm">{formatBytes(singleResult.sizes.brotli)}</p>
+                  <p className="text-[10px] uppercase text-foreground/40">
+                    brotli
+                  </p>
+                  <p className="font-mono text-sm">
+                    {formatBytes(singleResult.sizes.brotli)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/70 py-2">
-                  <p className="text-[10px] uppercase text-foreground/40">raw</p>
-                  <p className="font-mono text-sm">{formatBytes(singleResult.sizes.raw)}</p>
+                  <p className="text-[10px] uppercase text-foreground/40">
+                    raw
+                  </p>
+                  <p className="font-mono text-sm">
+                    {formatBytes(singleResult.sizes.raw)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs">
                 {singleFromBatch ? (
                   <button
                     type="button"
-                    onClick={() => setView("batch")}
+                    onClick={() => setViewWithHistory("batch")}
                     className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
                   >
-                    Back to batch
+                    <span className="inline-flex items-center gap-1">
+                      <ArrowLeft className="size-3.5" />
+                      Back to batch
+                    </span>
                   </button>
                 ) : (
-                  <span className="text-foreground/30">single result</span>
+                  <button
+                    type="button"
+                    onClick={() => setViewWithHistory("entry")}
+                    className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <ArrowLeft className="size-3.5" />
+                      Back
+                    </span>
+                  </button>
                 )}
                 <button
                   type="button"
-                  onClick={() => setView("entry")}
+                  onClick={() => setViewWithHistory("entry")}
                   className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
                 >
-                  New analysis
+                  Analyze another package
                 </button>
               </div>
             </motion.div>
           )}
 
           {view === "batch" && (
-            <motion.div variants={fade} className="rounded-xl border border-border p-4 space-y-2">
+            <motion.div
+              variants={fade}
+              className="rounded-xl border border-border p-4 space-y-2"
+            >
               <div className="flex items-center justify-between">
                 <p className="text-xs text-foreground/40">Batch results</p>
                 <button
                   type="button"
-                  onClick={() => setView("entry")}
+                  onClick={() => setViewWithHistory("entry")}
                   className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
                 >
-                  New analysis
+                  Analyze another package
                 </button>
               </div>
               <div className="max-h-80 overflow-auto space-y-1.5">
@@ -452,7 +645,7 @@ export default function PackageSearch() {
                       if (!("sizes" in item)) return;
                       setSingleResult(item);
                       setSingleFromBatch(true);
-                      setView("single");
+                      setViewWithHistory("single");
                     }}
                     className={cn(
                       "w-full rounded-md border px-3 py-2 text-left transition-colors",
@@ -487,7 +680,9 @@ export default function PackageSearch() {
             className="absolute inset-0 flex flex-col items-center justify-center"
           >
             <Loader2 className="size-10 animate-spin text-foreground/70" />
-            <p className="mt-3 font-mono text-sm text-foreground/50">analyzing...</p>
+            <p className="mt-3 font-mono text-sm text-foreground/50">
+              analyzing...
+            </p>
           </motion.div>
         )}
       </div>

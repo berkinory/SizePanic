@@ -29,7 +29,7 @@ const RootComponent = () => (
       storageKey="vite-ui-theme"
     >
       <Outlet />
-      <Toaster richColors />
+      <Toaster richColors position="bottom-center" />
     </ThemeProvider>
     <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
   </>
