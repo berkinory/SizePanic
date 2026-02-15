@@ -57,11 +57,21 @@ const fade = {
 
 const GITHUB_URL = "https://github.com/berkinory/SizePanic";
 
+const INSTALL_TICKER = [
+  "react 3.1 kB",
+  "@tanstack/react-query 13.6 kB",
+  "date-fns 18.3 kB",
+  "lodash 26.6 kB",
+  "zod 61.1 kB",
+];
+
 export default function PackageSearch() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [packageInput, setPackageInput] = useState("");
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const parsedInput = parseInput(packageInput);
+  const isInvalid = packageInput.trim().length > 0 && !parsedInput;
 
   const handleBoxClick = () => fileInputRef.current?.click();
 
@@ -106,6 +116,22 @@ export default function PackageSearch() {
         <p className="text-foreground/60 mt-3 text-base">
           check what that npm install really costs
         </p>
+        <div className="relative mt-5 overflow-hidden rounded-lg border border-border/60 bg-background/70 py-2">
+          <motion.div
+            className="flex w-max gap-2 px-2"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+          >
+            {[...INSTALL_TICKER, ...INSTALL_TICKER].map((item, index) => (
+              <span
+                key={`${item}-${index}`}
+                className="rounded-md border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-[11px] text-foreground/70"
+              >
+                {item}
+              </span>
+            ))}
+          </motion.div>
+        </div>
         <a
           href={GITHUB_URL}
           target="_blank"
@@ -118,7 +144,7 @@ export default function PackageSearch() {
       </motion.div>
 
       <motion.div variants={fade} className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="hidden sm:flex items-center justify-between">
           <TooltipProvider delay={0}>
             <Tooltip>
               <TooltipTrigger className="text-[11px] text-foreground/30 hover:text-foreground/60 transition-colors cursor-default">
@@ -140,24 +166,52 @@ export default function PackageSearch() {
         </div>
 
         <form onSubmit={(e) => e.preventDefault()} className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 font-mono text-lg text-foreground/45 tracking-tight">
+            $ npm i
+          </span>
           <Input
             value={packageInput}
             onChange={(e) => setPackageInput(e.target.value)}
-            placeholder="analyze package"
-            className="h-14 rounded-xl pl-5 pr-12 font-mono text-lg!"
+            placeholder="<react@latest>"
+            className={cn(
+              "h-14 rounded-xl border pl-[6.2rem] pr-12 font-mono text-lg! tracking-tight",
+              isInvalid
+                ? "border-destructive/50 ring-2 ring-destructive/20"
+                : "border-border"
+            )}
           />
           <button
             type="submit"
-            disabled={!parseInput(packageInput)}
+            disabled={!parsedInput}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground hover:text-foreground/80 disabled:opacity-20 disabled:pointer-events-none transition-colors cursor-pointer"
           >
-            <HugeiconsIcon
-              icon={PackageSearchIcon}
-              size={24}
-              strokeWidth={1.5}
-            />
+            <motion.span
+              className="inline-flex"
+              animate={
+                parsedInput
+                  ? {
+                      rotate: [0, -8, 8, -8, 0],
+                      scale: [1, 1.08, 1],
+                    }
+                  : { rotate: 0, scale: 1 }
+              }
+              transition={
+                parsedInput
+                  ? { duration: 0.6, repeat: Infinity, repeatDelay: 1.4 }
+                  : { duration: 0.2 }
+              }
+            >
+              <HugeiconsIcon
+                icon={PackageSearchIcon}
+                size={24}
+                strokeWidth={1.5}
+              />
+            </motion.span>
           </button>
         </form>
+        <p className="sm:hidden px-1 text-[11px] text-foreground/40 font-mono">
+          or try: react@18, @tanstack/react-query, lodash/fp
+        </p>
       </motion.div>
 
       <motion.div variants={fade} className="flex items-center gap-4 my-8">
