@@ -1,10 +1,13 @@
-import { GithubIcon, PackageSearchIcon } from "@hugeicons/core-free-icons";
+import {
+  GithubIcon,
+  InformationCircleIcon,
+  PackageSearchIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
 import { FileJson, Upload, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +71,11 @@ const INSTALL_TICKER = [
   "zod 61.1 kB",
 ];
 
+const INPUT_EXAMPLES = [
+  "react",
+  "@tanstack/react-query",
+];
+
 type AnalyzeMode = "input" | "upload";
 
 export default function PackageSearch() {
@@ -118,9 +126,18 @@ export default function PackageSearch() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const applyExample = (value: string) => {
+    setMode("input");
+    if (droppedFile) removeFile();
+    setPackageInput(value);
+  };
+
   const handleInputSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode !== "input" || !parsedInput || analyzeMutation.isPending) return;
+
+    let nextName = parsedInput.name;
+    let nextVersion = parsedInput.version ?? "latest";
 
     try {
       const result = await analyzeMutation.mutateAsync({
@@ -128,13 +145,16 @@ export default function PackageSearch() {
         packageVersion: parsedInput.version,
       });
       if (!Array.isArray(result)) {
-        toast.success(
-          `${result.packageName}@${result.packageVersion} analyzed`
-        );
+        nextName = result.packageName;
+        nextVersion = result.packageVersion;
       }
     } catch {
       // QueryClient onError handler already shows an error toast.
     }
+
+    window.location.assign(
+      `/analyze/${encodeURIComponent(nextName)}/${encodeURIComponent(nextVersion)}`
+    );
   };
 
   return (
@@ -182,8 +202,13 @@ export default function PackageSearch() {
         <div className="hidden sm:flex items-center justify-between">
           <TooltipProvider delay={0}>
             <Tooltip>
-              <TooltipTrigger className="text-sm text-foreground/30 hover:text-foreground/60 transition-colors cursor-default">
+              <TooltipTrigger className="inline-flex items-center gap-1.5 font-mono text-sm text-foreground/30 hover:text-foreground/60 transition-colors cursor-default">
                 Supported formats
+                <HugeiconsIcon
+                  icon={InformationCircleIcon}
+                  size={14}
+                  strokeWidth={1.5}
+                />
               </TooltipTrigger>
               <TooltipContent
                 side="top"
@@ -205,6 +230,7 @@ export default function PackageSearch() {
             $ npm i
           </span>
           <Input
+            autoFocus
             value={packageInput}
             onChange={(e) => {
               setMode("input");
@@ -224,33 +250,25 @@ export default function PackageSearch() {
             disabled={!parsedInput || analyzeMutation.isPending}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground hover:text-foreground/80 disabled:opacity-20 disabled:pointer-events-none transition-colors cursor-pointer"
           >
-            <motion.span
-              className="inline-flex"
-              animate={
-                parsedInput
-                  ? {
-                      rotate: [0, -8, 8, -8, 0],
-                      scale: [1, 1.08, 1],
-                    }
-                  : { rotate: 0, scale: 1 }
-              }
-              transition={
-                parsedInput
-                  ? { duration: 0.6, repeat: Infinity, repeatDelay: 1.4 }
-                  : { duration: 0.2 }
-              }
-            >
-              <HugeiconsIcon
-                icon={PackageSearchIcon}
-                size={24}
-                strokeWidth={1.5}
-              />
-            </motion.span>
+            <HugeiconsIcon
+              icon={PackageSearchIcon}
+              size={24}
+              strokeWidth={1.5}
+            />
           </button>
         </form>
-        <p className="sm:hidden px-1 text-[11px] text-foreground/40 font-mono">
-          or try: react@18, @tanstack/react-query, lodash/fp
-        </p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {INPUT_EXAMPLES.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => applyExample(example)}
+              className="cursor-pointer rounded-md border border-dashed border-border/70 bg-muted/20 px-2.5 py-1 font-mono text-[11px] text-foreground/80 hover:border-primary/50 hover:bg-primary/10 hover:text-foreground transition-colors"
+            >
+              {example}
+            </button>
+          ))}
+        </div>
       </motion.div>
 
       <motion.div variants={fade} className="flex items-center gap-4 my-8">
