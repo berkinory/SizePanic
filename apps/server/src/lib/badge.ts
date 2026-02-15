@@ -33,7 +33,10 @@ function errorBadge(label: string, message: string) {
   };
 }
 
-async function handleBadge(name: string, query: { version?: string; type?: string }) {
+async function handleBadge(
+  name: string,
+  query: { version?: string; type?: string }
+) {
   const sizeType: SizeType =
     query.type === "brotli" || query.type === "raw" ? query.type : "gzip";
   const label = `${name} ${sizeType}`;
