@@ -6,6 +6,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 
+import { badgePlugin } from "./lib/badge";
 import { analyzePackage } from "./lib/bundle/executor";
 import { resolveVersion } from "./lib/bundle/version";
 
@@ -52,6 +53,7 @@ new Elysia()
     },
     { parse: "none" }
   )
+  .use(badgePlugin)
   .get("/", () => "OK")
   .listen(4000, () => {
     console.log("Server is running on http://localhost:4000");
