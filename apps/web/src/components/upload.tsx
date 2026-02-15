@@ -1,8 +1,10 @@
 import { GithubIcon, PackageSearchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useMutation } from "@tanstack/react-query";
 import { FileJson, Upload, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/utils/trpc";
 
 const VERSION_RE = /^[\d.*x^~>=< ||-]+/;
 
@@ -65,13 +68,17 @@ const INSTALL_TICKER = [
   "zod 61.1 kB",
 ];
 
+type AnalyzeMode = "input" | "upload";
+
 export default function PackageSearch() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [packageInput, setPackageInput] = useState("");
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [mode, setMode] = useState<AnalyzeMode>("input");
   const parsedInput = parseInput(packageInput);
   const isInvalid = packageInput.trim().length > 0 && !parsedInput;
+  const analyzeMutation = useMutation(trpc.bundle.analyze.mutationOptions());
 
   const handleBoxClick = () => fileInputRef.current?.click();
 
@@ -89,17 +96,45 @@ export default function PackageSearch() {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file?.name.endsWith(".json")) setDroppedFile(file);
+    if (file?.name.endsWith(".json")) {
+      setMode("upload");
+      setPackageInput("");
+      setDroppedFile(file);
+    }
   };
 
   const handleFileSelect = (files: FileList | null) => {
     const file = files?.[0];
-    if (file?.name.endsWith(".json")) setDroppedFile(file);
+    if (file?.name.endsWith(".json")) {
+      setMode("upload");
+      setPackageInput("");
+      setDroppedFile(file);
+    }
   };
 
   const removeFile = () => {
+    setMode("input");
     setDroppedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleInputSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode !== "input" || !parsedInput || analyzeMutation.isPending) return;
+
+    try {
+      const result = await analyzeMutation.mutateAsync({
+        packageName: parsedInput.name,
+        packageVersion: parsedInput.version,
+      });
+      if (!Array.isArray(result)) {
+        toast.success(
+          `${result.packageName}@${result.packageVersion} analyzed`
+        );
+      }
+    } catch {
+      // QueryClient onError handler already shows an error toast.
+    }
   };
 
   return (
@@ -147,7 +182,7 @@ export default function PackageSearch() {
         <div className="hidden sm:flex items-center justify-between">
           <TooltipProvider delay={0}>
             <Tooltip>
-              <TooltipTrigger className="text-[11px] text-foreground/30 hover:text-foreground/60 transition-colors cursor-default">
+              <TooltipTrigger className="text-sm text-foreground/30 hover:text-foreground/60 transition-colors cursor-default">
                 Supported formats
               </TooltipTrigger>
               <TooltipContent
@@ -165,13 +200,17 @@ export default function PackageSearch() {
           </TooltipProvider>
         </div>
 
-        <form onSubmit={(e) => e.preventDefault()} className="relative">
+        <form onSubmit={handleInputSubmit} className="relative">
           <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 font-mono text-lg text-foreground/45 tracking-tight">
             $ npm i
           </span>
           <Input
             value={packageInput}
-            onChange={(e) => setPackageInput(e.target.value)}
+            onChange={(e) => {
+              setMode("input");
+              setPackageInput(e.target.value);
+              if (droppedFile) removeFile();
+            }}
             placeholder="<react@latest>"
             className={cn(
               "h-14 rounded-xl border pl-[6.2rem] pr-12 font-mono text-lg! tracking-tight",
@@ -182,7 +221,7 @@ export default function PackageSearch() {
           />
           <button
             type="submit"
-            disabled={!parsedInput}
+            disabled={!parsedInput || analyzeMutation.isPending}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground hover:text-foreground/80 disabled:opacity-20 disabled:pointer-events-none transition-colors cursor-pointer"
           >
             <motion.span
