@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PackageSplatRouteImport } from './routes/package/$'
+import { Route as BatchIdRouteImport } from './routes/batch/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PackageSplatRoute = PackageSplatRouteImport.update({
+  id: '/package/$',
+  path: '/package/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BatchIdRoute = BatchIdRouteImport.update({
+  id: '/batch/$id',
+  path: '/batch/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/batch/$id': typeof BatchIdRoute
+  '/package/$': typeof PackageSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/batch/$id': typeof BatchIdRoute
+  '/package/$': typeof PackageSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/batch/$id': typeof BatchIdRoute
+  '/package/$': typeof PackageSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/batch/$id' | '/package/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/batch/$id' | '/package/$'
+  id: '__root__' | '/' | '/batch/$id' | '/package/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BatchIdRoute: typeof BatchIdRoute
+  PackageSplatRoute: typeof PackageSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/package/$': {
+      id: '/package/$'
+      path: '/package/$'
+      fullPath: '/package/$'
+      preLoaderRoute: typeof PackageSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/batch/$id': {
+      id: '/batch/$id'
+      path: '/batch/$id'
+      fullPath: '/batch/$id'
+      preLoaderRoute: typeof BatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BatchIdRoute: BatchIdRoute,
+  PackageSplatRoute: PackageSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
