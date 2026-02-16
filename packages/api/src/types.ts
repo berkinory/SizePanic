@@ -17,6 +17,8 @@ export interface PackageMetadata {
   keywords?: string[];
   dependencyCount: number;
   peerDependencyCount: number;
+  npmUrl: string;
+  subpaths: string[];
 }
 
 export interface BundleRequest {

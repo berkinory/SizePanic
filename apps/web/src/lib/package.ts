@@ -16,6 +16,10 @@ export type AnalyzeSuccess = {
   sizes: { raw: number; gzip: number; brotli: number };
   downloadTime: { slow3G: number; fast4G: number };
   duration: number;
+  metadata: {
+    npmUrl: string;
+    subpaths: string[];
+  };
 };
 
 export type AnalyzeBatchItem =

@@ -4,12 +4,13 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, RotateCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, RotateCw } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import {
   type AnalyzeSuccess,
+  buildSplat,
   fade,
   formatBytes,
   parseInput,
@@ -151,6 +152,29 @@ function PackagePage() {
                 </p>
               </div>
             </div>
+            {result.metadata.subpaths.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase text-foreground/40">
+                  Subpaths
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {result.metadata.subpaths.map((sub) => (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() =>
+                        void navigate({
+                          to: `/package/${buildSplat({ name: `${result.packageName}/${sub}` })}`,
+                        })
+                      }
+                      className="cursor-pointer rounded-md border border-dashed border-border/70 bg-muted/20 px-2 py-0.5 font-mono text-[11px] text-foreground/70 hover:border-primary/50 hover:bg-primary/10 hover:text-foreground transition-colors"
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between text-xs">
               <button
                 type="button"
@@ -160,13 +184,24 @@ function PackagePage() {
                 <ArrowLeft className="size-3.5" />
                 Back
               </button>
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/" })}
-                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
-              >
-                Analyze another package
-              </button>
+              <div className="flex items-center gap-3">
+                <a
+                  href={result.metadata.npmUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  npm
+                  <ExternalLink className="size-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: "/" })}
+                  className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
+                >
+                  Analyze another package
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
