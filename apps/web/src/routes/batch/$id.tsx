@@ -38,6 +38,9 @@ import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/batch/$id")({
   component: BatchPage,
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  }),
 });
 
 function BatchPage() {

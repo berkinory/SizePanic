@@ -7,6 +7,12 @@ export default defineConfig({
   headLinkOptions: {
     preset: "2023",
   },
-  images: ["public/logo.png"],
-  preset,
+  images: ["public/logo.jpg"],
+  preset: {
+    ...preset,
+    transparent: {
+      ...preset.transparent,
+      favicons: undefined,
+    },
+  },
 });

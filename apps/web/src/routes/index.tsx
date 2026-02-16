@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
+  head: () => ({}),
 });
 
 function HomeComponent() {

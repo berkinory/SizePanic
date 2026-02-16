@@ -38,13 +38,6 @@ const RootComponent = () => (
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
   head: () => ({
-    links: [{ href: "/favicon.ico", rel: "icon" }],
-    meta: [
-      { title: "SizePanic" },
-      {
-        content: "Check the bundle size cost of npm packages",
-        name: "description",
-      },
-    ],
+    meta: [{ title: "SizePanic" }],
   }),
 });

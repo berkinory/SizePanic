@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /package/
+Disallow: /batch/
+
+Sitemap: https://sizepanic.com/sitemap.xml

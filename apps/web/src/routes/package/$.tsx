@@ -38,6 +38,9 @@ import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/package/$")({
   component: PackagePage,
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  }),
 });
 
 function PackagePage() {
