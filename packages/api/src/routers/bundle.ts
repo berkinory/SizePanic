@@ -100,7 +100,7 @@ export const bundleRouter = router({
             duration: result.duration,
           };
         },
-        20
+        15
       );
 
       if (!isBatch) {
