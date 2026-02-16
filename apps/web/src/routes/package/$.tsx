@@ -1,22 +1,39 @@
+import {
+  Analytics03Icon,
+  ArrowLeft01Icon,
+  CellularNetworkIcon,
+  DeliveryBox02Icon,
+  FlowConnectionIcon,
+  GithubIcon,
+  LicenseIcon,
+  LinkSquare02Icon,
+  NpmIcon,
+  PackageOpenIcon,
+  PackageSearchIcon,
+  RepeatIcon,
+} from "@hugeicons/core-free-icons";
+import { type IconSvgElement, HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
 import {
   createFileRoute,
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, Loader2, RotateCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   type AnalyzeSuccess,
   buildSplat,
   fade,
   formatBytes,
+  formatMs,
   parseInput,
+  repoToUrl,
   stagger,
 } from "@/lib/package";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/package/$")({
@@ -89,12 +106,13 @@ function PackagePage() {
               <button
                 type="button"
                 onClick={() => router.history.back()}
-                className={cn(
-                  "cursor-pointer text-foreground/60 hover:text-foreground transition-colors",
-                  "inline-flex items-center gap-1"
-                )}
+                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                <ArrowLeft className="size-3.5" />
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  size={14}
+                  strokeWidth={1.5}
+                />
                 Back
               </button>
               <button
@@ -105,107 +123,261 @@ function PackagePage() {
                     packageVersion: parsed.version,
                   });
                 }}
-                className={cn(
-                  "cursor-pointer text-foreground/60 hover:text-foreground transition-colors",
-                  "inline-flex items-center gap-1"
-                )}
+                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                <RotateCw className="size-3.5" />
+                <HugeiconsIcon icon={RepeatIcon} size={14} strokeWidth={1.5} />
                 Retry
               </button>
             </div>
           </motion.div>
         )}
 
-        {result && (
-          <motion.div
-            variants={fade}
-            className="rounded-xl border border-border p-5 space-y-4"
-          >
-            <div>
-              <p className="font-mono text-sm text-foreground/80">
-                {result.packageName}@{result.packageVersion}
-              </p>
-              <p className="text-xs text-foreground/45 mt-1">
-                analyzed in {result.duration} ms
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg border border-border/70 py-2">
-                <p className="text-[10px] uppercase text-foreground/40">gzip</p>
-                <p className="font-mono text-sm">
-                  {formatBytes(result.sizes.gzip)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border/70 py-2">
-                <p className="text-[10px] uppercase text-foreground/40">
-                  brotli
-                </p>
-                <p className="font-mono text-sm">
-                  {formatBytes(result.sizes.brotli)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border/70 py-2">
-                <p className="text-[10px] uppercase text-foreground/40">raw</p>
-                <p className="font-mono text-sm">
-                  {formatBytes(result.sizes.raw)}
-                </p>
-              </div>
-            </div>
-            {result.metadata.subpaths.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase text-foreground/40">
-                  Subpaths
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.metadata.subpaths.map((sub) => (
-                    <button
-                      key={sub}
-                      type="button"
-                      onClick={() =>
-                        void navigate({
-                          to: `/package/${buildSplat({ name: `${result.packageName}/${sub}` })}`,
-                        })
-                      }
-                      className="cursor-pointer rounded-md border border-dashed border-border/70 bg-muted/20 px-2 py-0.5 font-mono text-[11px] text-foreground/70 hover:border-primary/50 hover:bg-primary/10 hover:text-foreground transition-colors"
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => router.history.back()}
-                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-              >
-                <ArrowLeft className="size-3.5" />
-                Back
-              </button>
-              <div className="flex items-center gap-3">
-                <a
-                  href={result.metadata.npmUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-                >
-                  npm
-                  <ExternalLink className="size-3" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => void navigate({ to: "/" })}
-                  className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors"
-                >
-                  Analyze another package
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        {result && <ResultCard result={result} />}
       </motion.div>
     </div>
+  );
+}
+
+function pluralize(count: number, singular: string, plural: string): string {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
+}
+
+function ResultCard({ result }: { result: AnalyzeSuccess }) {
+  const navigate = useNavigate();
+  const router = useRouter();
+
+  const githubUrl = repoToUrl(result.metadata.repository);
+  const hasLinks =
+    githubUrl || result.metadata.homepage || result.metadata.npmUrl;
+  const subpaths = result.metadata.subpaths.filter((s) => s !== "package.json");
+
+  return (
+    <motion.div variants={fade} className="space-y-5">
+      <div className="flex items-center justify-between text-xs">
+        <button
+          type="button"
+          onClick={() => router.history.back()}
+          className="cursor-pointer text-foreground/50 hover:text-foreground transition-colors inline-flex items-center gap-1"
+        >
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.5} />
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/" })}
+          className="cursor-pointer text-foreground/50 hover:text-foreground transition-colors inline-flex items-center gap-1"
+        >
+          <HugeiconsIcon icon={Analytics03Icon} size={14} strokeWidth={1.5} />
+          Analyze another package
+        </button>
+      </div>
+
+      <div>
+        <h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
+          {result.packageName}
+          <span className="text-primary">@{result.packageVersion}</span>
+        </h1>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground/50">
+        {result.metadata.license && (
+          <span className="inline-flex items-center gap-1">
+            <HugeiconsIcon
+              icon={LicenseIcon}
+              size={13}
+              strokeWidth={1.5}
+              className="text-foreground/30"
+            />
+            {result.metadata.license}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1">
+          <HugeiconsIcon
+            icon={PackageOpenIcon}
+            size={13}
+            strokeWidth={1.5}
+            className="text-foreground/30"
+          />
+          {pluralize(
+            result.metadata.dependencyCount,
+            "dependency",
+            "dependencies"
+          )}
+        </span>
+        {result.metadata.peerDependencyCount > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <HugeiconsIcon
+              icon={FlowConnectionIcon}
+              size={13}
+              strokeWidth={1.5}
+              className="text-foreground/30"
+            />
+            {pluralize(
+              result.metadata.peerDependencyCount,
+              "peer dependency",
+              "peer dependencies"
+            )}
+          </span>
+        )}
+      </div>
+
+      {hasLinks && (
+        <div className="flex items-center gap-1.5">
+          <ExternalChip
+            href={result.metadata.npmUrl}
+            icon={NpmIcon}
+            label="npm"
+          />
+          {githubUrl && (
+            <ExternalChip href={githubUrl} icon={GithubIcon} label="GitHub" />
+          )}
+          {result.metadata.homepage && (
+            <ExternalChip
+              href={result.metadata.homepage}
+              icon={LinkSquare02Icon}
+              label="Home"
+            />
+          )}
+        </div>
+      )}
+
+      <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <HugeiconsIcon
+              icon={DeliveryBox02Icon}
+              size={15}
+              strokeWidth={1.5}
+              className="text-foreground/50"
+            />
+            <span className="text-xs uppercase tracking-wider text-foreground/50 font-medium">
+              Bundle size
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <SizeCell label="RAW" bytes={result.sizes.raw} />
+            <SizeCell
+              label="GZIP"
+              bytes={result.sizes.gzip}
+              savings={Math.round(
+                (1 - result.sizes.gzip / result.sizes.raw) * 100
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="h-px bg-border/60" />
+
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <HugeiconsIcon
+              icon={CellularNetworkIcon}
+              size={15}
+              strokeWidth={1.5}
+              className="text-foreground/50"
+            />
+            <span className="text-xs uppercase tracking-wider text-foreground/50 font-medium">
+              Download time
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2">
+              <p className="text-[11px] text-foreground/40 mb-0.5">SLOW 3G</p>
+              <p className="font-mono text-sm text-foreground/80">
+                {formatMs(result.downloadTime.slow3G)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2">
+              <p className="text-[11px] text-foreground/40 mb-0.5">FAST 4G</p>
+              <p className="font-mono text-sm text-foreground/80">
+                {formatMs(result.downloadTime.fast4G)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {subpaths.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <HugeiconsIcon
+              icon={PackageSearchIcon}
+              size={15}
+              strokeWidth={1.5}
+              className="text-foreground/50"
+            />
+            <span className="text-xs uppercase tracking-wider text-foreground/50 font-medium">
+              Subpaths
+            </span>
+          </div>
+          <ScrollArea className="max-h-[8.5rem]">
+            <div className="space-y-1">
+              {subpaths.map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() =>
+                    void navigate({
+                      to: `/package/${buildSplat({ name: `${result.packageName}/${sub}` })}`,
+                    })
+                  }
+                  className="flex w-full cursor-pointer items-center rounded-md border border-border/50 bg-muted/15 px-3 py-1.5 font-mono text-xs text-foreground/60 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-colors"
+                >
+                  {result.packageName}/{sub}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function SizeCell({
+  label,
+  bytes,
+  savings,
+}: {
+  label: string;
+  bytes: number;
+  savings?: number;
+}) {
+  return (
+    <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2">
+      <p className="text-[11px] text-foreground/40 mb-0.5">{label}</p>
+      <div className="flex items-baseline gap-1.5">
+        <p className="font-mono text-sm text-foreground/80">
+          {formatBytes(bytes)}
+        </p>
+        {savings != null && savings > 0 && (
+          <span className="font-mono text-[11px] text-green-500">
+            -{savings}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ExternalChip({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: IconSvgElement;
+  label: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2.5 py-1 text-[11px] text-foreground/50 hover:text-foreground hover:border-foreground/20 transition-colors"
+    >
+      <HugeiconsIcon icon={icon} size={13} strokeWidth={1.5} />
+      {label}
+    </a>
   );
 }

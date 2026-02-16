@@ -17,6 +17,15 @@ export type AnalyzeSuccess = {
   downloadTime: { slow3G: number; fast4G: number };
   duration: number;
   metadata: {
+    name: string;
+    version: string;
+    description?: string;
+    license?: string;
+    repository?: { type: string; url: string };
+    homepage?: string;
+    keywords?: string[];
+    dependencyCount: number;
+    peerDependencyCount: number;
     npmUrl: string;
     subpaths: string[];
   };
@@ -56,6 +65,21 @@ export function parseInput(raw: string): PackageInput | null {
   }
 
   return { name: trimmed };
+}
+
+export function formatMs(ms: number): string {
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
+export function repoToUrl(
+  repo: { type: string; url: string } | undefined
+): string | null {
+  if (!repo?.url) return null;
+  return repo.url
+    .replace(/^git\+/, "")
+    .replace(/^git:\/\//, "https://")
+    .replace(/\.git$/, "");
 }
 
 export function formatBytes(bytes: number): string {
