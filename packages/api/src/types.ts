@@ -53,6 +53,7 @@ export interface BundleError {
   error: {
     code: BundleErrorCode;
     message: string;
+    subpaths?: string[];
   };
   duration: number;
   packageName: string;

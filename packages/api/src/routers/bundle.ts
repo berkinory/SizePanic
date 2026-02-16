@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { publicProcedure, router } from "../index";
@@ -9,17 +8,6 @@ const FAST_4G_KBPS = 1430;
 function downloadTime(bytes: number, kbps: number): number {
   return Math.round((bytes / 1024 / kbps) * 1000);
 }
-
-const errorCodeMap: Record<string, TRPCError["code"]> = {
-  FETCH_FAILED: "NOT_FOUND",
-  INSTALL_FAILED: "INTERNAL_SERVER_ERROR",
-  SIZE_LIMIT_EXCEEDED: "PAYLOAD_TOO_LARGE",
-  TIMEOUT: "TIMEOUT",
-  BUNDLE_FAILED: "INTERNAL_SERVER_ERROR",
-  NODE_BUILTIN_MODULES: "BAD_REQUEST",
-  NO_ENTRY_POINT: "BAD_REQUEST",
-  UNKNOWN: "INTERNAL_SERVER_ERROR",
-};
 
 const versionSchema = z
   .string()
@@ -47,10 +35,7 @@ async function processBatch<T, R>(
         processor(item).catch((error) => {
           return {
             error: {
-              code:
-                error instanceof TRPCError
-                  ? error.code
-                  : "INTERNAL_SERVER_ERROR",
+              code: "INTERNAL_SERVER_ERROR",
               message: error instanceof Error ? error.message : String(error),
             },
           } as R;
@@ -91,17 +76,20 @@ export const bundleRouter = router({
 
           if (!result.success) {
             return {
-              packageName,
-              packageVersion: version,
+              packageName: result.packageName,
+              packageVersion: result.packageVersion,
               error: {
                 code: result.error.code,
                 message: result.error.message,
+                ...(result.error.subpaths?.length
+                  ? { subpaths: result.error.subpaths }
+                  : {}),
               },
             };
           }
 
           return {
-            packageName,
+            packageName: result.metadata.name,
             packageVersion: result.metadata.version,
             sizes: result.sizes,
             metadata: result.metadata,
@@ -118,16 +106,16 @@ export const bundleRouter = router({
       if (!isBatch) {
         const result = results[0];
         if (!result) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "No result returned",
-          });
-        }
-        if ("error" in result && result.error) {
-          throw new TRPCError({
-            code: errorCodeMap[result.error.code] ?? "INTERNAL_SERVER_ERROR",
-            message: result.error.message,
-          });
+          return {
+            packageName:
+              packagesToAnalyze[0]?.packageName ?? "unknown-package-name",
+            packageVersion:
+              packagesToAnalyze[0]?.packageVersion ?? "unknown-version",
+            error: {
+              code: "UNKNOWN",
+              message: "No result returned",
+            },
+          };
         }
         return result;
       }

@@ -12,6 +12,13 @@ export class NodeBuiltinError extends Error {
 
 export class NoEntryPointError extends Error {
   override name = "NoEntryPointError";
+
+  constructor(
+    message: string,
+    readonly subpaths: string[] = []
+  ) {
+    super(message);
+  }
 }
 
 export class InstallError extends Error {

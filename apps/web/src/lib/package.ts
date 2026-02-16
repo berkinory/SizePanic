@@ -36,8 +36,14 @@ export type AnalyzeBatchItem =
   | {
       packageName: string;
       packageVersion: string;
-      error: { code: string; message: string };
+      error: { code: string; message: string; subpaths?: string[] };
     };
+
+export type AnalyzeFailure = {
+  packageName: string;
+  packageVersion: string;
+  error: { code: string; message: string; subpaths?: string[] };
+};
 
 type UploadedPackageJson = {
   name?: string;

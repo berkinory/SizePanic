@@ -5,12 +5,12 @@ import {
   DeliveryBox02Icon,
   FlowConnectionIcon,
   GithubIcon,
+  Loading02Icon,
   LicenseIcon,
   LinkSquare02Icon,
   NpmIcon,
   PackageOpenIcon,
   PackageSearchIcon,
-  RepeatIcon,
 } from "@hugeicons/core-free-icons";
 import { type IconSvgElement, HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
@@ -19,12 +19,12 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  type AnalyzeFailure,
   type AnalyzeSuccess,
   buildSplat,
   fade,
@@ -48,25 +48,36 @@ function PackagePage() {
   const parsed = _splat ? parseInput(_splat) : null;
 
   const analyzeMutation = useMutation(trpc.bundle.analyze.mutationOptions());
-  const hasTriggered = useRef(false);
 
   useEffect(() => {
-    if (hasTriggered.current) return;
     if (!parsed) {
       void navigate({ to: "/" });
       return;
     }
-    hasTriggered.current = true;
+
     analyzeMutation.mutate({
       packageName: parsed.name,
       packageVersion: parsed.version,
     });
-  }, []);
+  }, [parsed?.name, parsed?.version]);
 
   const result =
     analyzeMutation.data && !Array.isArray(analyzeMutation.data)
-      ? (analyzeMutation.data as AnalyzeSuccess)
+      ? "error" in analyzeMutation.data
+        ? null
+        : (analyzeMutation.data as AnalyzeSuccess)
       : null;
+
+  const failure =
+    analyzeMutation.data &&
+    !Array.isArray(analyzeMutation.data) &&
+    "error" in analyzeMutation.data
+      ? (analyzeMutation.data as AnalyzeFailure)
+      : null;
+
+  const fallbackErrorMessage = normalizeErrorMessage(
+    analyzeMutation.error?.message
+  );
 
   if (!parsed) return null;
 
@@ -77,32 +88,33 @@ function PackagePage() {
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="w-full max-w-lg"
+        className="w-full max-w-2xl"
       >
         {analyzeMutation.isPending && (
           <motion.div
             variants={fade}
             className="flex flex-col items-center justify-center py-20"
           >
-            <Loader2 className="size-10 animate-spin text-foreground/70" />
+            <HugeiconsIcon
+              icon={Loading02Icon}
+              size={36}
+              strokeWidth={1.5}
+              className="animate-spin text-foreground/70"
+            />
             <p className="mt-3 font-mono text-sm text-foreground/50">
               analyzing {parsed.name}...
             </p>
           </motion.div>
         )}
 
-        {analyzeMutation.isError && !result && (
+        {(failure || analyzeMutation.isError) && !result && (
           <motion.div
             variants={fade}
-            className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-4"
+            className="relative overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(160deg,rgba(220,38,38,0.08)_0%,rgba(220,38,38,0.03)_38%,rgba(0,0,0,0)_100%)] p-6 sm:p-7"
           >
-            <div>
-              <p className="font-mono text-sm text-foreground/80">{_splat}</p>
-              <p className="text-xs text-destructive/80 mt-1">
-                {analyzeMutation.error.message}
-              </p>
-            </div>
-            <div className="flex items-center justify-between text-xs">
+            <div className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-destructive/10 blur-3xl" />
+
+            <div className="relative mb-5 flex items-center justify-between text-xs">
               <button
                 type="button"
                 onClick={() => router.history.back()}
@@ -117,32 +129,125 @@ function PackagePage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  analyzeMutation.mutate({
-                    packageName: parsed.name,
-                    packageVersion: parsed.version,
-                  });
-                }}
+                onClick={() => void navigate({ to: "/" })}
                 className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                <HugeiconsIcon icon={RepeatIcon} size={14} strokeWidth={1.5} />
-                Retry
+                <HugeiconsIcon
+                  icon={Analytics03Icon}
+                  size={14}
+                  strokeWidth={1.5}
+                />
+                Analyze another package
               </button>
             </div>
+
+            <div className="relative space-y-5">
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 font-mono text-[11px] tracking-[0.06em] text-destructive/85">
+                  <HugeiconsIcon
+                    icon={PackageOpenIcon}
+                    size={13}
+                    strokeWidth={1.8}
+                  />
+                  Analysis Failed
+                </span>
+                <p className="font-mono text-base text-foreground/90 sm:text-lg">
+                  {_splat}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-destructive/20 bg-background/75 px-3.5 py-3 backdrop-blur-sm">
+                <p className="text-sm leading-relaxed text-foreground/80">
+                  {failure?.error.message ?? fallbackErrorMessage}
+                </p>
+              </div>
+
+              {!failure && analyzeMutation.isError && (
+                <div className="rounded-xl border border-border/60 bg-background/70 p-3 text-xs text-foreground/65">
+                  <p className="font-medium text-foreground/75">
+                    Possible reason
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    NPM veya API rate limitine takildigin icin sunucudan
+                    beklenen JSON yerine text donmus olabilir.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {failure?.error.subpaths && failure.error.subpaths.length > 0 && (
+              <div className="relative mt-5 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <HugeiconsIcon
+                    icon={PackageSearchIcon}
+                    size={15}
+                    strokeWidth={1.5}
+                    className="text-foreground/50"
+                  />
+                  <span className="text-xs tracking-wide text-foreground/55 font-medium">
+                    Available Exports
+                  </span>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-border/60 bg-background/60">
+                  <ScrollArea className="max-h-[8.5rem]">
+                    <div className="space-y-1 p-2 pr-3">
+                      {failure.error.subpaths.map((subpath) => (
+                        <button
+                          key={subpath}
+                          type="button"
+                          onClick={() =>
+                            void navigate({
+                              to: `/package/${buildSplat({ name: `${failure.packageName}/${subpath}` })}`,
+                            })
+                          }
+                          className="flex w-full cursor-pointer items-center rounded-lg border border-border/55 bg-muted/20 px-3 py-1.5 font-mono text-xs text-foreground/75 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-colors"
+                        >
+                          {failure.packageName}/{subpath}
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
-        {result && <ResultCard result={result} />}
+        {result && <ResultCard result={result} requestedName={parsed.name} />}
       </motion.div>
     </div>
   );
+}
+
+function normalizeErrorMessage(message: string | undefined): string {
+  if (!message) return "Something went wrong while analyzing this package.";
+
+  const lowerMessage = message.toLowerCase();
+  if (lowerMessage.includes("too many requests")) {
+    return "Too many requests. Please try again in a minute.";
+  }
+
+  if (
+    lowerMessage.includes("unexpected token") &&
+    lowerMessage.includes("not valid json")
+  ) {
+    return "Too many requests. Please try again in a minute.";
+  }
+
+  return message;
 }
 
 function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
 }
 
-function ResultCard({ result }: { result: AnalyzeSuccess }) {
+function ResultCard({
+  result,
+  requestedName,
+}: {
+  result: AnalyzeSuccess;
+  requestedName: string;
+}) {
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -174,7 +279,7 @@ function ResultCard({ result }: { result: AnalyzeSuccess }) {
 
       <div>
         <h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
-          {result.packageName}
+          {requestedName}
           <span className="text-primary">@{result.packageVersion}</span>
         </h1>
       </div>

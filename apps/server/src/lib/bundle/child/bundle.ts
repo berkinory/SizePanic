@@ -97,6 +97,9 @@ async function main() {
       error: {
         code: mapErrorCode(error),
         message: error instanceof Error ? error.message : String(error),
+        ...(error instanceof NoEntryPointError && error.subpaths.length > 0
+          ? { subpaths: error.subpaths }
+          : {}),
       },
       duration: Date.now() - startTime,
       packageName: request.packageName,
@@ -145,7 +148,8 @@ async function validateRootExport(
 
   if (subpaths.length > 0) {
     throw new NoEntryPointError(
-      `Package doesn't have a default export. Try a subpath: ${packageName}/${subpaths[0]}`
+      `Package doesn't have a default export. Try a subpath instead.`,
+      subpaths
     );
   }
 
