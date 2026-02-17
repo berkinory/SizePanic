@@ -119,6 +119,10 @@ async function main() {
   process.exit(0);
 }
 
+export async function runBundleChildFromStdin(): Promise<void> {
+  await main();
+}
+
 async function validateRootExport(
   workDir: string,
   packageName: string
@@ -158,4 +162,9 @@ async function validateRootExport(
   );
 }
 
-main();
+if (import.meta.main) {
+  runBundleChildFromStdin().catch((error) => {
+    console.error("Bundle worker fatal error:", error);
+    process.exit(1);
+  });
+}

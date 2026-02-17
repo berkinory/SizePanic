@@ -58,10 +58,7 @@ export async function analyzePackage(
 
 function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
   return new Promise((resolve) => {
-    const child = spawn("bun", ["run", "src/lib/bundle/child/bundle.ts"], {
-      cwd: process.cwd(),
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const child = spawnBundleWorker();
 
     let stdout = "";
     let timedOut = false;
@@ -144,5 +141,18 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
 
     child.stdin.write(JSON.stringify(request));
     child.stdin.end();
+  });
+}
+
+function spawnBundleWorker() {
+  const scriptPath = process.argv[1];
+  const args =
+    scriptPath && scriptPath !== "--bundle-child"
+      ? [scriptPath, "--bundle-child"]
+      : ["--bundle-child"];
+
+  return spawn(process.execPath, args, {
+    cwd: process.cwd(),
+    stdio: ["pipe", "pipe", "pipe"],
   });
 }

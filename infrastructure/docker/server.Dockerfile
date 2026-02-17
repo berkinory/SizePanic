@@ -31,6 +31,7 @@ FROM gcr.io/distroless/base-debian12:nonroot AS runner
 WORKDIR /app
 
 COPY --from=busybox /bin/wget /bin/wget
+COPY --from=base /usr/local/bin/bun /usr/local/bin/bun
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/server/server /app/server
 
