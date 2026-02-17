@@ -8,23 +8,48 @@ import { bundleSemaphore } from "./concurrency";
 import { parsePackageName } from "./parse-package";
 
 const BUNDLE_TIMEOUT = 20_000;
+const QUEUE_TIMEOUT = 30_000;
 
 export async function analyzePackage(
   packageName: string,
   packageVersion: string
 ): Promise<BundleResponse> {
-  await bundleSemaphore.acquire();
+  const jobId = nanoid();
+  const parsed = parsePackageName(packageName);
+  const request: BundleRequest = {
+    packageName: parsed.name,
+    packageVersion,
+    subpath: parsed.subpath,
+    jobId,
+  };
 
   try {
-    const jobId = nanoid();
-    const parsed = parsePackageName(packageName);
-    const request: BundleRequest = {
-      packageName: parsed.name,
-      packageVersion,
-      subpath: parsed.subpath,
-      jobId,
-    };
+    await bundleSemaphore.acquire(QUEUE_TIMEOUT);
+  } catch (error) {
+    const isQueueFull =
+      error instanceof Error && error.message === "Queue is full";
+    const isQueueTimeout =
+      error instanceof Error && error.message === "Queue wait timeout";
 
+    return {
+      success: false,
+      error: {
+        code: isQueueTimeout ? "TIMEOUT" : "UNKNOWN",
+        message: isQueueFull
+          ? "Server is busy right now. Please try again shortly."
+          : isQueueTimeout
+            ? `Server is busy right now. Queue wait exceeded ${QUEUE_TIMEOUT}ms`
+            : "Server is busy right now. Please try again shortly.",
+      },
+      duration: 0,
+      packageName: request.packageName,
+      packageVersion: request.packageVersion,
+      jobId: request.jobId,
+      timestamp: Date.now(),
+    };
+  }
+
+  try {
     return await spawnChildProcess(request);
   } finally {
     bundleSemaphore.release();

@@ -11,9 +11,6 @@ services:
     environment:
       - NODE_ENV=production
       - WEB_URL=${WEB_URL}
-    depends_on:
-      postgres:
-        condition: service_healthy
     deploy:
       resources:
         limits:

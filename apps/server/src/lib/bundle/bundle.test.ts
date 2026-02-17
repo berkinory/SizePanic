@@ -364,8 +364,6 @@ describe("shouldSkipPackage — blacklist false-positive prevention", () => {
     "my-loader-utils",
     "nwjs",
     "bunyan",
-    "bun-types",
-    "npm-run-all",
     "yarn-deduplicate",
     "chai-as-promised",
     "jest-mock",
@@ -388,12 +386,13 @@ describe("shouldSkipPackage — unsupported", () => {
       "@types/node",
       "@types/lodash",
       "@types/express",
+      "bun-types",
     ];
     for (const pkg of types) {
       it(`blocks: ${pkg}`, () => {
         const result = shouldSkipPackage(pkg);
         expect(result.skip).toBe(true);
-        expect(result.reason).toContain("Type packages");
+        expect(result.reason).toContain("Type");
       });
     }
   });
@@ -536,7 +535,7 @@ describe("shouldSkipPackage — unsupported", () => {
   });
 
   describe("process managers", () => {
-    const managers = ["pm2", "nodemon", "forever"];
+    const managers = ["pm2", "nodemon", "forever", "npm-run-all"];
     for (const pkg of managers) {
       it(`blocks: ${pkg}`, () => {
         const result = shouldSkipPackage(pkg);

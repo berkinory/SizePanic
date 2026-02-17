@@ -241,15 +241,7 @@ function PackagePage() {
                 </div>
 
                 {!failure && analyzeMutation.isError && (
-                  <div className="rounded-xl border border-border/60 bg-background/70 p-3 text-xs text-foreground/65">
-                    <p className="font-medium text-foreground/75">
-                      Possible reason
-                    </p>
-                    <p className="mt-1 leading-relaxed">
-                      NPM veya API rate limitine takildigin icin sunucudan
-                      beklenen JSON yerine text donmus olabilir.
-                    </p>
-                  </div>
+                  <div className="rounded-xl border border-border/60 bg-background/70 p-3 text-xs text-foreground/65"></div>
                 )}
               </div>
 

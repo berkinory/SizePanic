@@ -4,6 +4,22 @@ import { publicProcedure, router } from "../index";
 
 const SLOW_3G_KBPS = 50;
 const FAST_4G_KBPS = 1430;
+const MAX_PACKAGE_INPUT_LENGTH = 214;
+const MAX_VERSION_INPUT_LENGTH = 64;
+const MAX_BATCH_SIZE = 30;
+const BATCH_CONCURRENCY = 10;
+
+const PACKAGE_SPECIFIER_REGEX =
+  /^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(\/[A-Za-z0-9._-]+)*$/;
+
+function isSafePackageSpecifier(value: string): boolean {
+  if (!PACKAGE_SPECIFIER_REGEX.test(value)) return false;
+  if (value.includes("..")) return false;
+  if (value.includes("\\")) return false;
+  if (value.includes("//")) return false;
+  if (value.startsWith("/") || value.endsWith("/")) return false;
+  return true;
+}
 
 function downloadTime(bytes: number, kbps: number): number {
   return Math.round((bytes / 1024 / kbps) * 1000);
@@ -11,14 +27,23 @@ function downloadTime(bytes: number, kbps: number): number {
 
 const versionSchema = z
   .string()
+  .trim()
   .min(1)
+  .max(MAX_VERSION_INPUT_LENGTH)
   .refine((v) => v === "latest" || /^[\d.*x^~>=< ||-]+/.test(v), {
     message: "Version must be a valid semver version or range, or 'latest'",
   })
   .optional();
 
 const packageSchema = z.object({
-  packageName: z.string().min(1),
+  packageName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_PACKAGE_INPUT_LENGTH)
+    .refine(isSafePackageSpecifier, {
+      message: "Package name must be a valid npm package specifier",
+    }),
   packageVersion: versionSchema,
 });
 
@@ -93,13 +118,24 @@ export const bundleRouter = router({
     }),
 
   analyzeBatch: publicProcedure
-    .input(z.object({ packages: z.array(packageSchema).min(1).max(50) }))
+    .input(
+      z.object({ packages: z.array(packageSchema).min(1).max(MAX_BATCH_SIZE) })
+    )
     .mutation(async ({ input, ctx }) => {
+      const deduped = Array.from(
+        new Map(
+          input.packages.map((pkg) => [
+            `${pkg.packageName}@${pkg.packageVersion || "latest"}`,
+            pkg,
+          ])
+        ).values()
+      );
+
       return processBatch(
-        input.packages,
+        deduped,
         ({ packageName, packageVersion }) =>
           analyzeOne(ctx, packageName, packageVersion),
-        15
+        BATCH_CONCURRENCY
       );
     }),
 });
