@@ -19,7 +19,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -99,140 +99,211 @@ function PackagePage() {
 
   if (!parsed) return null;
 
+  const phase = analyzeMutation.isPending
+    ? "loading"
+    : result
+      ? "result"
+      : failure || analyzeMutation.isError
+        ? "error"
+        : "loading";
+
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center px-4">
+    <div className="relative flex min-h-svh flex-col items-center px-4 pt-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,var(--primary)_0%,transparent_70%)] opacity-[0.03]" />
+
       <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="w-full max-w-2xl"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="mb-10 flex items-center gap-3"
       >
-        {analyzeMutation.isPending && (
-          <motion.div
-            variants={fade}
-            className="flex flex-col items-center justify-center py-20"
-          >
-            <HugeiconsIcon
-              icon={Loading02Icon}
-              size={36}
-              strokeWidth={1.5}
-              className="animate-spin text-foreground/70"
-            />
-            <p className="mt-3 font-mono text-sm text-foreground/50">
-              analyzing {parsed.name}...
-            </p>
-          </motion.div>
-        )}
+        <a href="/" className="flex items-center gap-3 group">
+          <img
+            src="/logo-nobg.png"
+            alt="SizePanic"
+            width={32}
+            height={32}
+            className="drop-shadow-md transition-transform group-hover:scale-105"
+          />
+          <span className="font-mono text-lg font-bold tracking-tighter text-foreground/80 group-hover:text-foreground transition-colors">
+            SizePanic
+          </span>
+        </a>
+      </motion.div>
 
-        {(failure || analyzeMutation.isError) && !result && (
-          <motion.div
-            variants={fade}
-            className="relative overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(160deg,rgba(220,38,38,0.08)_0%,rgba(220,38,38,0.03)_38%,rgba(0,0,0,0)_100%)] p-6 sm:p-7"
-          >
-            <div className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-destructive/10 blur-3xl" />
-
-            <div className="relative mb-5 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => router.history.back()}
-                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-              >
-                <HugeiconsIcon
-                  icon={ArrowLeft01Icon}
-                  size={14}
-                  strokeWidth={1.5}
-                />
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/" })}
-                className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-              >
-                <HugeiconsIcon
-                  icon={Analytics03Icon}
-                  size={14}
-                  strokeWidth={1.5}
-                />
-                Analyze another package
-              </button>
-            </div>
-
-            <div className="relative space-y-5">
-              <div className="space-y-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 font-mono text-[11px] tracking-[0.06em] text-destructive/85">
+      <div className="w-full max-w-2xl flex-1 flex flex-col justify-center pb-16">
+        <AnimatePresence mode="wait">
+          {phase === "loading" && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97, y: -8 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="flex flex-col items-center justify-center py-20"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl animate-pulse" />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
                   <HugeiconsIcon
-                    icon={PackageOpenIcon}
-                    size={13}
-                    strokeWidth={1.8}
+                    icon={Loading02Icon}
+                    size={36}
+                    strokeWidth={1.5}
+                    className="relative text-foreground/70"
                   />
-                  Analysis Failed
-                </span>
-                <p className="font-mono text-base text-foreground/90 sm:text-lg">
-                  {_splat}
-                </p>
+                </motion.div>
+              </div>
+              <p className="mt-4 font-mono text-sm text-foreground/50">
+                analyzing {parsed.name}...
+              </p>
+              <div className="mt-3 flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="size-1 rounded-full bg-foreground/25"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {phase === "error" && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="relative overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(160deg,rgba(220,38,38,0.08)_0%,rgba(220,38,38,0.03)_38%,rgba(0,0,0,0)_100%)] p-6 sm:p-7"
+            >
+              <div className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-destructive/10 blur-3xl" />
+
+              <div className="relative mb-5 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => router.history.back()}
+                  className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  <HugeiconsIcon
+                    icon={ArrowLeft01Icon}
+                    size={14}
+                    strokeWidth={1.5}
+                  />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: "/" })}
+                  className="cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  <HugeiconsIcon
+                    icon={Analytics03Icon}
+                    size={14}
+                    strokeWidth={1.5}
+                  />
+                  Analyze another package
+                </button>
               </div>
 
-              <div className="rounded-xl border border-destructive/20 bg-background/75 px-3.5 py-3 backdrop-blur-sm">
-                <p className="text-sm leading-relaxed text-foreground/80">
-                  {failure?.error.message ?? fallbackErrorMessage}
-                </p>
+              <div className="relative space-y-5">
+                <div className="space-y-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 font-mono text-[11px] tracking-[0.06em] text-destructive/85">
+                    <HugeiconsIcon
+                      icon={PackageOpenIcon}
+                      size={13}
+                      strokeWidth={1.8}
+                    />
+                    Analysis Failed
+                  </span>
+                  <p className="font-mono text-base text-foreground/90 sm:text-lg">
+                    {_splat}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-destructive/20 bg-background/75 px-3.5 py-3 backdrop-blur-sm">
+                  <p className="text-sm leading-relaxed text-foreground/80">
+                    {failure?.error.message ?? fallbackErrorMessage}
+                  </p>
+                </div>
+
+                {!failure && analyzeMutation.isError && (
+                  <div className="rounded-xl border border-border/60 bg-background/70 p-3 text-xs text-foreground/65">
+                    <p className="font-medium text-foreground/75">
+                      Possible reason
+                    </p>
+                    <p className="mt-1 leading-relaxed">
+                      NPM veya API rate limitine takildigin icin sunucudan
+                      beklenen JSON yerine text donmus olabilir.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {!failure && analyzeMutation.isError && (
-                <div className="rounded-xl border border-border/60 bg-background/70 p-3 text-xs text-foreground/65">
-                  <p className="font-medium text-foreground/75">
-                    Possible reason
-                  </p>
-                  <p className="mt-1 leading-relaxed">
-                    NPM veya API rate limitine takildigin icin sunucudan
-                    beklenen JSON yerine text donmus olabilir.
-                  </p>
+              {failure?.error.subpaths && failure.error.subpaths.length > 0 && (
+                <div className="relative mt-5 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <HugeiconsIcon
+                      icon={PackageSearchIcon}
+                      size={15}
+                      strokeWidth={1.5}
+                      className="text-foreground/50"
+                    />
+                    <span className="text-xs tracking-wide text-foreground/55 font-medium">
+                      Available Exports
+                    </span>
+                  </div>
+                  <div className="overflow-hidden rounded-xl border border-border/60 bg-background/60">
+                    <ScrollArea className="max-h-34">
+                      <div className="space-y-1 p-2 pr-3">
+                        {failure.error.subpaths.map((subpath) => (
+                          <button
+                            key={subpath}
+                            type="button"
+                            onClick={() =>
+                              void navigate({
+                                to: `/package/${buildSplat({ name: `${failure.packageName}/${subpath}` })}`,
+                              })
+                            }
+                            className="flex w-full cursor-pointer items-center rounded-lg border border-border/55 bg-muted/20 px-3 py-1.5 font-mono text-xs text-foreground/75 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-colors"
+                          >
+                            {failure.packageName}/{subpath}
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
                 </div>
               )}
-            </div>
+            </motion.div>
+          )}
 
-            {failure?.error.subpaths && failure.error.subpaths.length > 0 && (
-              <div className="relative mt-5 space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <HugeiconsIcon
-                    icon={PackageSearchIcon}
-                    size={15}
-                    strokeWidth={1.5}
-                    className="text-foreground/50"
-                  />
-                  <span className="text-xs tracking-wide text-foreground/55 font-medium">
-                    Available Exports
-                  </span>
-                </div>
-                <div className="overflow-hidden rounded-xl border border-border/60 bg-background/60">
-                  <ScrollArea className="max-h-[8.5rem]">
-                    <div className="space-y-1 p-2 pr-3">
-                      {failure.error.subpaths.map((subpath) => (
-                        <button
-                          key={subpath}
-                          type="button"
-                          onClick={() =>
-                            void navigate({
-                              to: `/package/${buildSplat({ name: `${failure.packageName}/${subpath}` })}`,
-                            })
-                          }
-                          className="flex w-full cursor-pointer items-center rounded-lg border border-border/55 bg-muted/20 px-3 py-1.5 font-mono text-xs text-foreground/75 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-colors"
-                        >
-                          {failure.packageName}/{subpath}
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {result && <ResultCard result={result} requestedName={parsed.name} />}
-      </motion.div>
+          {phase === "result" && result && (
+            <motion.div
+              key="result"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <ResultCard result={result} requestedName={parsed.name} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -275,8 +346,16 @@ function ResultCard({
   const subpaths = result.metadata.subpaths.filter((s) => s !== "package.json");
 
   return (
-    <motion.div variants={fade} className="space-y-5">
-      <div className="flex items-center justify-between text-xs">
+    <motion.div
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+      className="space-y-5"
+    >
+      <motion.div
+        variants={fade}
+        className="flex items-center justify-between text-xs"
+      >
         <button
           type="button"
           onClick={() => router.history.back()}
@@ -293,16 +372,19 @@ function ResultCard({
           <HugeiconsIcon icon={Analytics03Icon} size={14} strokeWidth={1.5} />
           Analyze another package
         </button>
-      </div>
+      </motion.div>
 
-      <div>
+      <motion.div variants={fade}>
         <h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
           {requestedName}
           <span className="text-primary">@{result.packageVersion}</span>
         </h1>
-      </div>
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground/50">
+      <motion.div
+        variants={fade}
+        className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground/50"
+      >
         {result.metadata.license && (
           <span className="inline-flex items-center gap-1">
             <HugeiconsIcon
@@ -342,10 +424,10 @@ function ResultCard({
             )}
           </span>
         )}
-      </div>
+      </motion.div>
 
       {hasLinks && (
-        <div className="flex items-center gap-1.5">
+        <motion.div variants={fade} className="flex items-center gap-1.5">
           <ExternalChip
             href={result.metadata.npmUrl}
             icon={NpmIcon}
@@ -361,10 +443,13 @@ function ResultCard({
               label="Home"
             />
           )}
-        </div>
+        </motion.div>
       )}
 
-      <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+      <motion.div
+        variants={fade}
+        className="rounded-xl border border-border bg-muted/20 p-4 space-y-4"
+      >
         <div>
           <div className="flex items-center gap-1.5 mb-3">
             <HugeiconsIcon
@@ -418,10 +503,10 @@ function ResultCard({
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {subpaths.length > 0 && (
-        <div className="space-y-2">
+        <motion.div variants={fade} className="space-y-2">
           <div className="flex items-center gap-1.5">
             <HugeiconsIcon
               icon={PackageSearchIcon}
@@ -433,7 +518,7 @@ function ResultCard({
               Subpaths
             </span>
           </div>
-          <ScrollArea className="max-h-[8.5rem]">
+          <ScrollArea className="max-h-34">
             <div className="space-y-1">
               {subpaths.map((sub) => (
                 <button
@@ -451,7 +536,7 @@ function ResultCard({
               ))}
             </div>
           </ScrollArea>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );

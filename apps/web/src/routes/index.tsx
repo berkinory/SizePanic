@@ -114,7 +114,7 @@ function HomeComponent() {
   };
 
   return (
-    <div className="relative flex flex-col items-center px-4">
+    <div className="relative flex flex-col items-center px-4 pt-10">
       <div className="pointer-events-none absolute inset-0 h-svh bg-[radial-gradient(ellipse_at_50%_40%,var(--primary)_0%,transparent_70%)] opacity-[0.03]" />
 
       <div className="flex min-h-svh flex-col items-center justify-center w-full">
@@ -125,16 +125,18 @@ function HomeComponent() {
           className="w-full max-w-lg"
         >
           <motion.div variants={fade} className="text-center mb-10">
-            <img
-              src="/logo-nobg.png"
-              alt="SizePanic"
-              width={72}
-              height={72}
-              className="mx-auto mb-5 drop-shadow-lg"
-            />
-            <h1 className="font-mono text-5xl font-bold tracking-tighter text-foreground">
-              SizePanic
-            </h1>
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <img
+                src="/logo-nobg.png"
+                alt="SizePanic"
+                width={56}
+                height={56}
+                className="drop-shadow-lg"
+              />
+              <h1 className="font-mono text-5xl font-bold tracking-tighter text-foreground">
+                SizePanic
+              </h1>
+            </div>
             <p className="text-foreground/60 mt-3 text-base">
               npm package size analyzer - check what that install really costs
             </p>
@@ -203,7 +205,7 @@ function HomeComponent() {
                   setPackageInput(e.target.value);
                   if (fileInputRef.current) fileInputRef.current.value = "";
                 }}
-                placeholder="<react@latest>"
+                placeholder="<drizzle-orm>"
                 className={cn(
                   "h-14 rounded-xl border pl-[6.2rem] pr-12 font-mono text-lg! tracking-tight",
                   isInvalid
@@ -247,35 +249,68 @@ function HomeComponent() {
           </motion.div>
 
           <motion.div variants={fade}>
-            <div
+            <motion.div
               className={cn(
-                "group border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200",
+                "group relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed p-8 text-center transition-colors duration-300",
                 isParsingUpload && "pointer-events-none opacity-50",
                 isDragging
-                  ? "border-primary/60 bg-primary/5 scale-[1.01]"
-                  : "border-border hover:border-foreground/20 hover:bg-muted/30"
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border/70 hover:border-foreground/20 hover:bg-muted/20"
               )}
               onClick={handleBoxClick}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={(e) => void handleDrop(e)}
+              animate={isDragging ? { scale: 1.015 } : { scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
             >
-              <div className="mb-4 rounded-full bg-muted/60 p-4 transition-colors group-hover:bg-muted">
-                <Upload className="size-5 text-foreground/40" />
-              </div>
-              <p className="text-sm font-medium text-foreground">
-                Drop your package.json
-              </p>
-              <p className="text-[13px] text-foreground/40 mt-1.5">
-                or{" "}
-                <label
-                  htmlFor="fileUpload"
-                  className="text-primary hover:text-primary/80 font-medium cursor-pointer underline underline-offset-2 decoration-primary/40"
-                  onClick={(e) => e.stopPropagation()}
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,var(--primary)_0%,transparent_70%)] transition-opacity duration-500",
+                  isDragging
+                    ? "opacity-[0.06]"
+                    : "opacity-0 group-hover:opacity-[0.03]"
+                )}
+              />
+
+              <div className="relative flex flex-col items-center">
+                <motion.div
+                  className={cn(
+                    "mb-4 rounded-2xl border p-4 transition-colors duration-300",
+                    isDragging
+                      ? "border-primary/30 bg-primary/10"
+                      : "border-border/50 bg-muted/50 group-hover:border-foreground/10 group-hover:bg-muted/80"
+                  )}
+                  animate={
+                    isDragging ? { y: -4, scale: 1.08 } : { y: 0, scale: 1 }
+                  }
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  browse files
-                </label>
-              </p>
+                  <Upload
+                    className={cn(
+                      "size-6 transition-colors duration-300",
+                      isDragging
+                        ? "text-primary"
+                        : "text-foreground/30 group-hover:text-foreground/50"
+                    )}
+                  />
+                </motion.div>
+
+                <p className="font-mono text-sm font-medium text-foreground">
+                  Drop your package.json
+                </p>
+                <p className="mt-1.5 text-xs text-foreground/40">
+                  Analyze every dependency at once, or{" "}
+                  <label
+                    htmlFor="fileUpload"
+                    className="text-primary hover:text-primary/80 font-medium cursor-pointer underline underline-offset-2 decoration-primary/30"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    browse files
+                  </label>
+                </p>
+              </div>
+
               <input
                 type="file"
                 id="fileUpload"
@@ -284,7 +319,7 @@ function HomeComponent() {
                 accept="application/json,.json"
                 onChange={(e) => void handleUpload(e.target.files?.[0])}
               />
-            </div>
+            </motion.div>
           </motion.div>
 
           <motion.div variants={fade} className="mt-12 flex justify-center">

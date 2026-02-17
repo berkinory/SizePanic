@@ -13,7 +13,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -21,12 +21,10 @@ import {
   type AnalyzeBatchItem,
   type AnalyzeSuccess,
   buildSplat,
-  fade,
   formatBytes,
   formatMs,
   loadBatchSession,
   repoToUrl,
-  stagger,
   updateBatchSessionResults,
 } from "@/lib/package";
 import { trpc } from "@/utils/trpc";
@@ -110,159 +108,211 @@ function BatchPage() {
     void navigate({ to: `/package/${splat}` });
   };
 
+  const showResults = results.length > 0;
+
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center px-4 py-6">
+    <div className="relative flex min-h-svh flex-col items-center px-4 pt-10 pb-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,var(--primary)_0%,transparent_70%)] opacity-[0.03]" />
+
       <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="mt-4 w-full max-w-3xl"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="mb-10 flex items-center gap-3"
       >
-        {!analyzeMutation.isPending && (
-          <motion.div
-            variants={fade}
-            className="mb-3 flex items-center justify-between text-xs"
-          >
-            <button
-              type="button"
-              onClick={() => router.history.back()}
-              className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+        <a href="/" className="flex items-center gap-3 group">
+          <img
+            src="/logo-nobg.png"
+            alt="SizePanic"
+            width={32}
+            height={32}
+            className="drop-shadow-md transition-transform group-hover:scale-105"
+          />
+          <span className="font-mono text-lg font-bold tracking-tighter text-foreground/80 group-hover:text-foreground transition-colors">
+            SizePanic
+          </span>
+        </a>
+      </motion.div>
+
+      <div className="w-full max-w-3xl flex-1 flex flex-col justify-center pb-10">
+        <AnimatePresence mode="wait">
+          {analyzeMutation.isPending && !showResults && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97, y: -8 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="flex flex-col items-center justify-center py-20"
             >
-              <HugeiconsIcon
-                icon={ArrowLeft01Icon}
-                size={14}
-                strokeWidth={1.5}
-              />
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => void navigate({ to: "/" })}
-              className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-            >
-              <HugeiconsIcon
-                icon={Analytics03Icon}
-                size={14}
-                strokeWidth={1.5}
-              />
-              Analyze another package
-            </button>
-          </motion.div>
-        )}
-
-        {analyzeMutation.isPending && (
-          <motion.div
-            variants={fade}
-            className="flex flex-col items-center justify-center py-20"
-          >
-            <HugeiconsIcon
-              icon={Loading02Icon}
-              size={34}
-              strokeWidth={1.5}
-              className="animate-spin text-foreground/70"
-            />
-            <p className="mt-3 font-mono text-sm text-foreground/50">
-              analyzing {session.current?.packages.length ?? 0} packages...
-            </p>
-          </motion.div>
-        )}
-
-        {results.length > 0 && (
-          <motion.div
-            variants={fade}
-            className="rounded-2xl border border-border/70 bg-background/75 p-5 space-y-5"
-          >
-            <div className="space-y-2.5">
-              {analyzed.map((item, index) => {
-                const githubUrl = repoToUrl(item.metadata.repository);
-
-                return (
-                  <button
-                    key={`${item.packageName}-${item.packageVersion}-${index}`}
-                    type="button"
-                    onClick={() => handleItemClick(item)}
-                    className="w-full cursor-pointer rounded-xl border border-border/65 bg-muted/15 px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
-                  >
-                    <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-base font-bold tracking-tight text-foreground">
-                          {item.packageName}
-                        </p>
-                        <p className="mt-0.5 font-mono text-xs text-primary">
-                          @{item.packageVersion}
-                        </p>
-                      </div>
-
-                      <StatsStrip
-                        raw={formatBytes(item.sizes.raw)}
-                        gzip={formatBytes(item.sizes.gzip)}
-                        fast={formatMs(item.downloadTime.fast4G)}
-                      />
-
-                      <div
-                        className="flex shrink-0 flex-col items-start gap-1"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {githubUrl && (
-                          <TinyLinkRow
-                            href={githubUrl}
-                            icon={GithubIcon}
-                            label="GitHub"
-                          />
-                        )}
-                        <TinyLinkRow
-                          href={item.metadata.npmUrl}
-                          icon={NpmIcon}
-                          label="Npm"
-                        />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {failed.length > 0 && (
-              <div className="pt-1 space-y-2.5">
-                <div className="flex items-center gap-1.5">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl animate-pulse" />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
                   <HugeiconsIcon
-                    icon={PackageSearchIcon}
-                    size={14}
-                    strokeWidth={1.6}
-                    className="text-destructive/80"
+                    icon={Loading02Icon}
+                    size={34}
+                    strokeWidth={1.5}
+                    className="relative text-foreground/70"
                   />
-                  <p className="text-xs font-medium text-foreground/65">
-                    Failed Packages
-                  </p>
-                </div>
-
-                {failed.map((item, index) => (
-                  <div
-                    key={`${item.packageName}-${item.packageVersion}-${index}-failed`}
-                    className="rounded-xl border border-destructive/25 bg-destructive/5 px-3.5 py-3"
-                  >
-                    <p className="font-mono text-sm font-bold tracking-tight text-foreground">
-                      {item.packageName}
-                      <span className="text-primary">
-                        @{item.packageVersion}
-                      </span>
-                    </p>
-                    <div className="mt-1.5 rounded-lg border border-destructive/25 bg-background/70 px-2.5 py-2">
-                      <p className="text-[11px] text-foreground/40 mb-0.5 uppercase">
-                        ERROR
-                      </p>
-                      <p className="text-[11px] leading-relaxed text-destructive/85">
-                        {item.error.message}
-                      </p>
-                    </div>
-                  </div>
+                </motion.div>
+              </div>
+              <p className="mt-4 font-mono text-sm text-foreground/50">
+                analyzing {session.current?.packages.length ?? 0} packages...
+              </p>
+              <div className="mt-3 flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="size-1 rounded-full bg-foreground/25"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                      ease: "easeInOut",
+                    }}
+                  />
                 ))}
               </div>
-            )}
-          </motion.div>
-        )}
-      </motion.div>
+            </motion.div>
+          )}
+
+          {showResults && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="space-y-4"
+            >
+              <div className="mb-3 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => router.history.back()}
+                  className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  <HugeiconsIcon
+                    icon={ArrowLeft01Icon}
+                    size={14}
+                    strokeWidth={1.5}
+                  />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: "/" })}
+                  className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  <HugeiconsIcon
+                    icon={Analytics03Icon}
+                    size={14}
+                    strokeWidth={1.5}
+                  />
+                  Analyze another package
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-border/70 bg-background/75 p-5 space-y-5">
+                <div className="space-y-2.5">
+                  {analyzed.map((item, index) => {
+                    const githubUrl = repoToUrl(item.metadata.repository);
+
+                    return (
+                      <button
+                        key={`${item.packageName}-${item.packageVersion}-${index}`}
+                        type="button"
+                        onClick={() => handleItemClick(item)}
+                        className="w-full cursor-pointer rounded-xl border border-border/65 bg-muted/15 px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
+                      >
+                        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-mono text-base font-bold tracking-tight text-foreground">
+                              {item.packageName}
+                            </p>
+                            <p className="mt-0.5 font-mono text-xs text-primary">
+                              @{item.packageVersion}
+                            </p>
+                          </div>
+
+                          <StatsStrip
+                            raw={formatBytes(item.sizes.raw)}
+                            gzip={formatBytes(item.sizes.gzip)}
+                            fast={formatMs(item.downloadTime.fast4G)}
+                          />
+
+                          <div
+                            className="flex shrink-0 flex-col items-start gap-1"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {githubUrl && (
+                              <TinyLinkRow
+                                href={githubUrl}
+                                icon={GithubIcon}
+                                label="GitHub"
+                              />
+                            )}
+                            <TinyLinkRow
+                              href={item.metadata.npmUrl}
+                              icon={NpmIcon}
+                              label="Npm"
+                            />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {failed.length > 0 && (
+                  <div className="pt-1 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <HugeiconsIcon
+                        icon={PackageSearchIcon}
+                        size={14}
+                        strokeWidth={1.6}
+                        className="text-destructive/80"
+                      />
+                      <p className="text-xs font-medium text-foreground/65">
+                        Failed Packages
+                      </p>
+                    </div>
+
+                    {failed.map((item, index) => (
+                      <div
+                        key={`${item.packageName}-${item.packageVersion}-${index}-failed`}
+                        className="rounded-xl border border-destructive/25 bg-destructive/5 px-3.5 py-3"
+                      >
+                        <p className="font-mono text-sm font-bold tracking-tight text-foreground">
+                          {item.packageName}
+                          <span className="text-primary">
+                            @{item.packageVersion}
+                          </span>
+                        </p>
+                        <div className="mt-1.5 rounded-lg border border-destructive/25 bg-background/70 px-2.5 py-2">
+                          <p className="text-[11px] text-foreground/40 mb-0.5 uppercase">
+                            ERROR
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-destructive/85">
+                            {item.error.message}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
