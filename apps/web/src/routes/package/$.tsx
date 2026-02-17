@@ -35,6 +35,7 @@ import {
   repoToUrl,
   stagger,
 } from "@/lib/package";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/package/$")({
@@ -65,7 +66,40 @@ function PackagePage() {
         packageVersion: parsed.version,
       },
       {
+        onSuccess: (data) => {
+          if (Array.isArray(data)) return;
+
+          if ("error" in data) {
+            trackEvent("single_analysis", {
+              package_name: data.packageName,
+              package_version: data.packageVersion,
+              success: false,
+              error_code: data.error.code,
+              error_message: data.error.message,
+              duration_ms: 0,
+            });
+            return;
+          }
+
+          trackEvent("single_analysis", {
+            package_name: data.packageName,
+            package_version: data.packageVersion,
+            success: true,
+            gzip_bytes: data.sizes.gzip,
+            raw_bytes: data.sizes.raw,
+            duration_ms: data.duration,
+          });
+        },
         onError: (error) => {
+          trackEvent("single_analysis", {
+            package_name: parsed.name,
+            package_version: parsed.version ?? "latest",
+            success: false,
+            error_code: "transport_error",
+            error_message: error.message,
+            duration_ms: 0,
+          });
+
           const msg = error.message.toLowerCase();
           if (
             msg.includes("too many requests") ||

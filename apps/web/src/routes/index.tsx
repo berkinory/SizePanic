@@ -74,6 +74,7 @@ function HomeComponent() {
       toast.error(validationError);
       return;
     }
+
     setIsParsingUpload(true);
     try {
       const packages = await parsePackageJsonFile(file as File);
@@ -81,6 +82,7 @@ function HomeComponent() {
         toast.error("No dependencies found in package.json");
         return;
       }
+
       const batchId = generateBatchId();
       saveBatchSession(batchId, { packages });
       void navigate({ to: "/batch/$id", params: { id: batchId } });

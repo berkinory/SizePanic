@@ -8,7 +8,6 @@ import { rateLimit } from "elysia-rate-limit";
 import { spawn } from "node:child_process";
 import { isIP } from "node:net";
 
-import { badgePlugin } from "./lib/badge";
 import { runBundleChildFromStdin } from "./lib/bundle/child/bundle";
 import { analyzePackage } from "./lib/bundle/executor";
 import { resolveVersion } from "./lib/bundle/version";
@@ -142,7 +141,6 @@ async function boot() {
       },
       { parse: "none" }
     )
-    .use(badgePlugin)
     .get("/", () => "OK")
     .listen(4000, () => {
       console.log("Server is running on http://localhost:4000");

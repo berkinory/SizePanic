@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { Databuddy } from "@databuddy/sdk/react";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   HeadContent,
@@ -22,6 +23,12 @@ export interface RouterAppContext {
 const RootComponent = () => (
   <>
     <HeadContent />
+    <Databuddy
+      clientId="18bb77d4-614f-4af9-b256-d4fd4fa8f9f1"
+      trackOutgoingLinks
+      trackWebVitals
+      trackErrors
+    />
     <ThemeProvider
       attribute="class"
       defaultTheme="dark"

@@ -27,6 +27,7 @@ import {
   repoToUrl,
   updateBatchSessionResults,
 } from "@/lib/package";
+import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/batch/$id")({
@@ -75,10 +76,68 @@ function BatchPage() {
         onSuccess: (data) => {
           if (!Array.isArray(data)) return;
           const batchResults = data as AnalyzeBatchItem[];
+
+          const successCount = batchResults.filter(isSuccess).length;
+          const failedItems = batchResults.filter(isFailure);
+          const durations = batchResults
+            .map((item) => ("duration" in item ? item.duration : 0))
+            .filter((duration) => typeof duration === "number");
+          const totalDurationMs = durations.reduce((acc, value) => acc + value, 0);
+
+          trackEvent("batch_analysis", {
+            package_count: batchResults.length,
+            success_count: successCount,
+            failure_count: failedItems.length,
+            total_duration_ms: totalDurationMs,
+            avg_duration_ms:
+              batchResults.length > 0
+                ? Math.round(totalDurationMs / batchResults.length)
+                : 0,
+            packages_json: JSON.stringify(
+              batchResults.map((item) =>
+                isSuccess(item)
+                  ? {
+                      package_name: item.packageName,
+                      package_version: item.packageVersion,
+                      success: true,
+                      raw_bytes: item.sizes.raw,
+                      gzip_bytes: item.sizes.gzip,
+                      duration_ms: item.duration,
+                    }
+                  : {
+                      package_name: item.packageName,
+                      package_version: item.packageVersion,
+                      success: false,
+                      error_code: item.error.code,
+                      error_message: item.error.message,
+                    }
+              )
+            ),
+          });
+
           setResults(batchResults);
           updateBatchSessionResults(id, batchResults);
         },
         onError: (error) => {
+          trackEvent("batch_analysis", {
+            package_count: session.current?.packages.length ?? 0,
+            success_count: 0,
+            failure_count: session.current?.packages.length ?? 0,
+            total_duration_ms: 0,
+            avg_duration_ms: 0,
+            error_code:
+              error.message.toLowerCase().includes("too many requests")
+                ? "rate_limited"
+                : "transport_error",
+            error_message: error.message,
+            packages_json: JSON.stringify(
+              session.current?.packages.map((item) => ({
+                package_name: item.name,
+                package_version: item.version ?? "latest",
+              })) ?? []
+            ),
+          });
+
           const msg = error.message.toLowerCase();
           if (
             msg.includes("too many requests") ||
