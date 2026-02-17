@@ -49,7 +49,7 @@ async function tryBundle(
     const messages = extractErrorMessages(e);
     if (includeDefault && messages.includes("No matching export")) return null;
     checkNodeBuiltin(messages);
-    throw new BundleError(messages);
+    throw new BundleError(cleanErrorMessage(messages));
   }
 
   if (!result.success) {
@@ -60,7 +60,7 @@ async function tryBundle(
     const joined = errors.join(", ");
     if (includeDefault && joined.includes("No matching export")) return null;
     checkNodeBuiltin(joined);
-    throw new BundleError(joined || "unknown error");
+    throw new BundleError(cleanErrorMessage(joined) || "unknown error");
   }
 
   return result.outputs[0]?.text() || "";
@@ -71,6 +71,15 @@ function extractErrorMessages(e: unknown): string {
     return e.errors.map((err: Error) => err.message).join(", ");
   }
   return e instanceof Error ? e.message : String(e);
+}
+
+function cleanErrorMessage(msg: string): string {
+  const cleaned = msg.replace(
+    /Could not resolve: "([^"]+)"[^,]*/g,
+    'Could not analyze "$1"'
+  );
+  const parts = cleaned.split(", ");
+  return [...new Set(parts)].join(", ");
 }
 
 function checkNodeBuiltin(msg: string): void {

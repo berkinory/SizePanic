@@ -25,7 +25,7 @@ function parseInstallError(stderr: string): string {
 }
 
 const INSTALL_TIMEOUT = 30_000;
-const MAX_INSTALL_SIZE = 100 * 1024 * 1024;
+const MAX_INSTALL_SIZE = 150 * 1024 * 1024;
 
 interface InstallResult {
   workDir: string;
@@ -50,7 +50,7 @@ export async function installPackage(
   const totalSize = await getDirectorySize(join(workDir, "node_modules"));
   if (totalSize > MAX_INSTALL_SIZE) {
     throw new SizeLimitError(
-      `Installed size ${totalSize} exceeds limit ${MAX_INSTALL_SIZE}`
+      "Package exceeds the maximum allowed install size"
     );
   }
 
