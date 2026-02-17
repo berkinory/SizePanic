@@ -15,6 +15,7 @@ import {
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   Tooltip,
@@ -54,7 +55,7 @@ function BatchPage() {
     session.current?.results ?? []
   );
 
-  const analyzeMutation = useMutation(trpc.bundle.analyze.mutationOptions());
+  const analyzeMutation = useMutation(trpc.bundle.analyzeBatch.mutationOptions());
 
   useEffect(() => {
     if (hasTriggered.current) return;
@@ -83,6 +84,15 @@ function BatchPage() {
           setResults(batchResults);
           updateBatchSessionResults(id, batchResults);
         },
+        onError: (error) => {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("too many requests") || (msg.includes("unexpected token") && msg.includes("not valid json"))) {
+            toast.error("Too many requests. Please try again in a minute.");
+          } else {
+            toast.error("Something went wrong. Please try again.");
+          }
+          void navigate({ to: "/" });
+        },
       }
     );
   }, []);
@@ -110,27 +120,29 @@ function BatchPage() {
         animate="show"
         className="mt-4 w-full max-w-3xl"
       >
-        <motion.div
-          variants={fade}
-          className="mb-3 flex items-center justify-between text-xs"
-        >
-          <button
-            type="button"
-            onClick={() => router.history.back()}
-            className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+        {!analyzeMutation.isPending && (
+          <motion.div
+            variants={fade}
+            className="mb-3 flex items-center justify-between text-xs"
           >
-            <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.5} />
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={() => void navigate({ to: "/" })}
-            className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
-          >
-            <HugeiconsIcon icon={Analytics03Icon} size={14} strokeWidth={1.5} />
-            Analyze another package
-          </button>
-        </motion.div>
+            <button
+              type="button"
+              onClick={() => router.history.back()}
+              className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.5} />
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/" })}
+              className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              <HugeiconsIcon icon={Analytics03Icon} size={14} strokeWidth={1.5} />
+              Analyze another package
+            </button>
+          </motion.div>
+        )}
 
         {analyzeMutation.isPending && (
           <motion.div

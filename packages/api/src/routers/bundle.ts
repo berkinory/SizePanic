@@ -47,79 +47,56 @@ async function processBatch<T, R>(
   return results;
 }
 
+async function analyzeOne(
+  ctx: { resolveVersion: (name: string, version?: string) => string; analyzePackage: (name: string, version: string) => Promise<any> },
+  packageName: string,
+  packageVersion?: string
+) {
+  const version = ctx.resolveVersion(packageName, packageVersion);
+  const result = await ctx.analyzePackage(packageName, version);
+
+  if (!result.success) {
+    return {
+      packageName: result.packageName,
+      packageVersion: result.packageVersion,
+      error: {
+        code: result.error.code,
+        message: result.error.message,
+        ...(result.error.subpaths?.length
+          ? { subpaths: result.error.subpaths }
+          : {}),
+      },
+    };
+  }
+
+  return {
+    packageName: result.metadata.name,
+    packageVersion: result.metadata.version,
+    sizes: result.sizes,
+    metadata: result.metadata,
+    downloadTime: {
+      slow3G: downloadTime(result.sizes.gzip, SLOW_3G_KBPS),
+      fast4G: downloadTime(result.sizes.gzip, FAST_4G_KBPS),
+    },
+    duration: result.duration,
+  };
+}
+
 export const bundleRouter = router({
   analyze: publicProcedure
-    .input(
-      z.union([
-        packageSchema,
-        z.object({
-          packages: z.array(packageSchema).min(1).max(50),
-        }),
-      ])
-    )
+    .input(packageSchema)
     .mutation(async ({ input, ctx }) => {
-      const isBatch = "packages" in input;
-      const packagesToAnalyze = isBatch
-        ? input.packages
-        : [
-            {
-              packageName: input.packageName,
-              packageVersion: input.packageVersion,
-            },
-          ];
+      return analyzeOne(ctx, input.packageName, input.packageVersion);
+    }),
 
-      const results = await processBatch(
-        packagesToAnalyze,
-        async ({ packageName, packageVersion }) => {
-          const version = ctx.resolveVersion(packageName, packageVersion);
-          const result = await ctx.analyzePackage(packageName, version);
-
-          if (!result.success) {
-            return {
-              packageName: result.packageName,
-              packageVersion: result.packageVersion,
-              error: {
-                code: result.error.code,
-                message: result.error.message,
-                ...(result.error.subpaths?.length
-                  ? { subpaths: result.error.subpaths }
-                  : {}),
-              },
-            };
-          }
-
-          return {
-            packageName: result.metadata.name,
-            packageVersion: result.metadata.version,
-            sizes: result.sizes,
-            metadata: result.metadata,
-            downloadTime: {
-              slow3G: downloadTime(result.sizes.gzip, SLOW_3G_KBPS),
-              fast4G: downloadTime(result.sizes.gzip, FAST_4G_KBPS),
-            },
-            duration: result.duration,
-          };
-        },
+  analyzeBatch: publicProcedure
+    .input(z.object({ packages: z.array(packageSchema).min(1).max(50) }))
+    .mutation(async ({ input, ctx }) => {
+      return processBatch(
+        input.packages,
+        ({ packageName, packageVersion }) =>
+          analyzeOne(ctx, packageName, packageVersion),
         15
       );
-
-      if (!isBatch) {
-        const result = results[0];
-        if (!result) {
-          return {
-            packageName:
-              packagesToAnalyze[0]?.packageName ?? "unknown-package-name",
-            packageVersion:
-              packagesToAnalyze[0]?.packageVersion ?? "unknown-version",
-            error: {
-              code: "UNKNOWN",
-              message: "No result returned",
-            },
-          };
-        }
-        return result;
-      }
-
-      return results;
     }),
 });

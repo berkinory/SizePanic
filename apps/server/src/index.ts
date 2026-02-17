@@ -33,25 +33,42 @@ function scheduleCacheCleanup() {
 
 scheduleCacheCleanup();
 
+function getClientIp(req: Request, server: unknown): string {
+  const headers = req.headers;
+  const cfIp = headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp;
+
+  const forwardedFor = headers.get("x-forwarded-for");
+  if (typeof forwardedFor === "string") {
+    return forwardedFor.split(",")[0]?.trim() || "unknown";
+  }
+
+  if (!server) return "unknown";
+  return (server as { requestIP(r: Request): { address: string } | null })
+    .requestIP(req)?.address || "unknown";
+}
+
+function isBatchRequest(req: Request): boolean {
+  return new URL(req.url).pathname.includes("bundle.analyzeBatch");
+}
+
 new Elysia()
   .use(
     rateLimit({
       duration: 60_000,
-      max: 15,
+      max: 20,
       errorResponse: "Too many requests. Please try again later.",
-      generator: (req, server) => {
-        const headers = req.headers;
-        const cfIp = headers.get("cf-connecting-ip");
-        if (cfIp) return cfIp;
-
-        const forwardedFor = headers.get("x-forwarded-for");
-        if (typeof forwardedFor === "string") {
-          return forwardedFor.split(",")[0]?.trim() || "unknown";
-        }
-
-        if (!server) return "unknown";
-        return server.requestIP(req)?.address || "unknown";
-      },
+      generator: (req, server) => getClientIp(req, server),
+      skip: (req) => isBatchRequest(req),
+    })
+  )
+  .use(
+    rateLimit({
+      duration: 60_000,
+      max: 3,
+      errorResponse: "Too many batch requests. Please try again later.",
+      generator: (req, server) => `batch:${getClientIp(req, server)}`,
+      skip: (req) => !isBatchRequest(req),
     })
   )
   .use(

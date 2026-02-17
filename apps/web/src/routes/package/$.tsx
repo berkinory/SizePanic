@@ -21,6 +21,7 @@ import {
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -58,10 +59,21 @@ function PackagePage() {
       return;
     }
 
-    analyzeMutation.mutate({
-      packageName: parsed.name,
-      packageVersion: parsed.version,
-    });
+    analyzeMutation.mutate(
+      {
+        packageName: parsed.name,
+        packageVersion: parsed.version,
+      },
+      {
+        onError: (error) => {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("too many requests") || (msg.includes("unexpected token") && msg.includes("not valid json"))) {
+            toast.error("Too many requests. Please try again in a minute.");
+            void navigate({ to: "/" });
+          }
+        },
+      }
+    );
   }, [parsed?.name, parsed?.version]);
 
   const result =
