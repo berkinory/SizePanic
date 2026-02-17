@@ -3,28 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Check the bundle size cost of npm packages" />
+    <meta
+      name="description"
+      content="Free npm package size analyzer. Get estimated minified and gzip sizes for any package before you install. Upload your package.json to audit all deps."
+    />
     <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="npm package size, package size checker, npm package analyzer, bundle size analyzer, npm package size checker, npm install size, package.json analyzer, web performance"
+    />
     <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="48x48" />
     <link rel="canonical" href="https://sizepanic.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SizePanic" />
-    <meta property="og:title" content="SizePanic" />
-    <meta property="og:description" content="Check the bundle size cost of npm packages" />
+    <meta property="og:title" content="SizePanic - Npm Package Size Analyzer" />
+    <meta
+      property="og:description"
+      content="Free npm package size analyzer. Get estimated minified and gzip sizes for any npm package. Supports batch analysis via package.json upload."
+    />
     <meta property="og:url" content="https://sizepanic.com/" />
     <meta property="og:image" content="https://sizepanic.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SizePanic" />
-    <meta name="twitter:description" content="Check the bundle size cost of npm packages" />
+    <meta
+      name="twitter:title"
+      content="SizePanic - Npm Package Size Analyzer"
+    />
+    <meta
+      name="twitter:description"
+      content="Free npm package size analyzer. Get estimated minified and gzip sizes for any npm package. Supports batch analysis via package.json upload."
+    />
     <meta name="twitter:image" content="https://sizepanic.com/og.png" />
-    <title>SizePanic</title>
+    <title>SizePanic - Npm Package Size Analyzer</title>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "SizePanic",
         "url": "https://sizepanic.com",
-        "description": "Check the bundle size cost of npm packages",
+        "description": "Free npm package size analyzer. Get estimated minified and gzip sizes for any npm package. Supports batch analysis via package.json upload.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any",
         "offers": {
@@ -32,6 +50,38 @@
           "price": "0",
           "priceCurrency": "USD"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does SizePanic measure package size?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "SizePanic installs the package in an isolated environment and bundles it using Bun's built-in bundler with minification enabled. It then measures the raw and gzip-compressed output sizes to give you an estimated cost your users will pay when downloading the package."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I analyze all dependencies in my project at once?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Drop your package.json file onto SizePanic and it will analyze every dependency and devDependency in a single batch, showing individual and total bundle sizes."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does SizePanic support scoped packages and specific versions?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. You can search for scoped packages like @tanstack/react-query, specific versions like react@18.2.0, and semver ranges like lodash@^4.0.0."
+            }
+          }
+        ]
       }
     </script>
   </head>

@@ -26,9 +26,7 @@ function scheduleCacheCleanup() {
     });
   }, ms);
 
-  console.log(
-    `[cache-cleanup] Next cleanup in ${Math.round(ms / 1000 / 60)}m`
-  );
+  console.log(`[cache-cleanup] Next cleanup in ${Math.round(ms / 1000 / 60)}m`);
 }
 
 scheduleCacheCleanup();
@@ -44,8 +42,11 @@ function getClientIp(req: Request, server: unknown): string {
   }
 
   if (!server) return "unknown";
-  return (server as { requestIP(r: Request): { address: string } | null })
-    .requestIP(req)?.address || "unknown";
+  return (
+    (server as { requestIP(r: Request): { address: string } | null }).requestIP(
+      req
+    )?.address || "unknown"
+  );
 }
 
 function isBatchRequest(req: Request): boolean {

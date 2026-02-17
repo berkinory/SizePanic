@@ -49,7 +49,9 @@ function BatchPage() {
     session.current?.results ?? []
   );
 
-  const analyzeMutation = useMutation(trpc.bundle.analyzeBatch.mutationOptions());
+  const analyzeMutation = useMutation(
+    trpc.bundle.analyzeBatch.mutationOptions()
+  );
 
   useEffect(() => {
     if (hasTriggered.current) return;
@@ -80,7 +82,10 @@ function BatchPage() {
         },
         onError: (error) => {
           const msg = error.message.toLowerCase();
-          if (msg.includes("too many requests") || (msg.includes("unexpected token") && msg.includes("not valid json"))) {
+          if (
+            msg.includes("too many requests") ||
+            (msg.includes("unexpected token") && msg.includes("not valid json"))
+          ) {
             toast.error("Too many requests. Please try again in a minute.");
           } else {
             toast.error("Something went wrong. Please try again.");
@@ -124,7 +129,11 @@ function BatchPage() {
               onClick={() => router.history.back()}
               className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.5} />
+              <HugeiconsIcon
+                icon={ArrowLeft01Icon}
+                size={14}
+                strokeWidth={1.5}
+              />
               Back
             </button>
             <button
@@ -132,7 +141,11 @@ function BatchPage() {
               onClick={() => void navigate({ to: "/" })}
               className="text-xs cursor-pointer text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-1"
             >
-              <HugeiconsIcon icon={Analytics03Icon} size={14} strokeWidth={1.5} />
+              <HugeiconsIcon
+                icon={Analytics03Icon}
+                size={14}
+                strokeWidth={1.5}
+              />
               Analyze another package
             </button>
           </motion.div>

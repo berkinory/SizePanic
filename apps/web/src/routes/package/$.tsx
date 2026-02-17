@@ -67,7 +67,10 @@ function PackagePage() {
       {
         onError: (error) => {
           const msg = error.message.toLowerCase();
-          if (msg.includes("too many requests") || (msg.includes("unexpected token") && msg.includes("not valid json"))) {
+          if (
+            msg.includes("too many requests") ||
+            (msg.includes("unexpected token") && msg.includes("not valid json"))
+          ) {
             toast.error("Too many requests. Please try again in a minute.");
             void navigate({ to: "/" });
           }

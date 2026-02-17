@@ -78,11 +78,13 @@ const UNSUPPORTED: BlacklistRule[] = [
   },
   {
     test: /^(pm2|nodemon|forever|concurrently|npm-run-all|cross-env)$/,
-    reason: "Server process managers and CLI utilities are not runtime libraries.",
+    reason:
+      "Server process managers and CLI utilities are not runtime libraries.",
   },
   {
     test: /^(fsevents|chokidar|watchman)$/,
-    reason: "File system watchers rely on native bindings and cannot be bundled.",
+    reason:
+      "File system watchers rely on native bindings and cannot be bundled.",
   },
   {
     test: /^(cpu-features|microtime|bufferutil|utf-8-validate)$/,

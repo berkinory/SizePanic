@@ -38,6 +38,6 @@ const RootComponent = () => (
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
   head: () => ({
-    meta: [{ title: "SizePanic" }],
+    meta: [{ title: "SizePanic - Npm Package Size  & Bundle Analyzer" }],
   }),
 });

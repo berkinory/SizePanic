@@ -48,7 +48,10 @@ async function processBatch<T, R>(
 }
 
 async function analyzeOne(
-  ctx: { resolveVersion: (name: string, version?: string) => string; analyzePackage: (name: string, version: string) => Promise<any> },
+  ctx: {
+    resolveVersion: (name: string, version?: string) => string;
+    analyzePackage: (name: string, version: string) => Promise<any>;
+  },
   packageName: string,
   packageVersion?: string
 ) {
