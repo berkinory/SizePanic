@@ -18,12 +18,6 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   type AnalyzeBatchItem,
   type AnalyzeSuccess,
   buildSplat,
@@ -283,23 +277,11 @@ function StatsStrip({
   fast: string;
 }) {
   return (
-    <TooltipProvider>
-      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border/55 bg-background/70 lg:min-w-[21rem]">
-        <StatBlock label="RAW" value={raw} />
-        <StatBlock label="GZIP" value={gzip} withDivider />
-        <div className="border-l border-border/55 px-2 py-1.5">
-          <p className="text-[11px] text-foreground/40 mb-0.5 uppercase">
-            SPEED
-          </p>
-          <Tooltip>
-            <TooltipTrigger className="font-mono text-xs text-foreground/80 cursor-help">
-              {fast}
-            </TooltipTrigger>
-            <TooltipContent>Fast 4G</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-    </TooltipProvider>
+    <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border/55 bg-background/70 lg:min-w-[21rem]">
+      <StatBlock label="RAW" value={raw} />
+      <StatBlock label="GZIP" value={gzip} withDivider />
+      <StatBlock label="4G" value={fast} withDivider />
+    </div>
   );
 }
 
