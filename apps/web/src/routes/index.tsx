@@ -300,14 +300,15 @@ function HomeComponent() {
                   Drop your package.json
                 </p>
                 <p className="mt-1.5 text-xs text-foreground/40">
-                  Analyze every dependency at once, or{" "}
+                  or{" "}
                   <label
                     htmlFor="fileUpload"
                     className="text-primary hover:text-primary/80 font-medium cursor-pointer underline underline-offset-2 decoration-primary/30"
                     onClick={(e) => e.stopPropagation()}
                   >
                     browse files
-                  </label>
+                  </label>{" "}
+                  to analyze all dependencies at once.
                 </p>
               </div>
 
