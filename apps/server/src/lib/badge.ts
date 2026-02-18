@@ -12,11 +12,11 @@ function formatBytes(bytes: number): string {
 }
 
 function sizeColor(bytes: number): string {
-  if (bytes < 10_240) return "brightgreen";
-  if (bytes < 25_600) return "green";
-  if (bytes < 51_200) return "yellow";
-  if (bytes < 102_400) return "orange";
-  return "red";
+  if (bytes < 5_120) return "#2ea043";
+  if (bytes < 15_360) return "#3fb950";
+  if (bytes < 30_720) return "#d29922";
+  if (bytes < 61_440) return "#f0883e";
+  return "#da3633";
 }
 
 type SizeType = keyof BundleSizes;
@@ -26,7 +26,10 @@ function errorBadge(label: string, message: string) {
     schemaVersion: 1,
     label,
     message,
-    color: "red",
+    color: "#da3633",
+    labelColor: "#30363d",
+    style: "flat-square",
+    namedLogo: "npm",
     isError: true,
   };
 }
@@ -37,7 +40,7 @@ async function handleBadge(
 ) {
   const sizeType: SizeType =
     query.type === "brotli" || query.type === "raw" ? query.type : "gzip";
-  const label = `${name} ${sizeType}`;
+  const label = name;
 
   try {
     const version = resolveVersion(name, query.version);
@@ -53,8 +56,11 @@ async function handleBadge(
     return {
       schemaVersion: 1,
       label,
-      message,
+      message: `${message} ${sizeType}`,
       color: sizeColor(bytes),
+      labelColor: "#30363d",
+      style: "flat-square",
+      namedLogo: "npm",
     };
   } catch (e) {
     return errorBadge(label, e instanceof Error ? e.message : "unknown error");
@@ -67,7 +73,7 @@ export const badgePlugin = new Elysia({ name: "badge" }).get(
     set.headers["cache-control"] = "public, max-age=86400";
     const name = params["*"];
     if (!name) {
-      return errorBadge("sizepanic", "missing package name");
+      return errorBadge("SizePanic", "Missing package");
     }
     return handleBadge(name, query);
   }

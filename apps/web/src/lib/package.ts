@@ -1,6 +1,6 @@
 const VERSION_RE = /^[\d.*x^~>=< ||-]+/;
 const MAX_PACKAGE_JSON_SIZE_BYTES = 5 * 1024 * 1024;
-export const MAX_BATCH_PACKAGE_COUNT = 50;
+export const MAX_BATCH_PACKAGE_COUNT = 30;
 const ALLOWED_PACKAGE_JSON_MIME_TYPES = new Set([
   "application/json",
   "text/json",

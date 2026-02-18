@@ -154,7 +154,7 @@ function BatchPage() {
             msg.includes("array")
           ) {
             toast.error(
-              "This package.json has too many dependencies for batch analysis. Please keep it to 50 or fewer."
+              "This package.json has too many dependencies for batch analysis. Please keep it to 30 or fewer."
             );
           } else {
             toast.error("Something went wrong. Please try again.");

@@ -19,6 +19,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
+import { Shield } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -365,6 +366,8 @@ function ResultCard({
 }) {
   const navigate = useNavigate();
   const router = useRouter();
+  const apiBadgeUrl = buildBadgeApiUrl(requestedName, result.packageVersion);
+  const shieldsBadgeUrl = buildShieldsUrl(apiBadgeUrl);
 
   const githubUrl = repoToUrl(result.metadata.repository);
   const hasLinks =
@@ -531,6 +534,30 @@ function ResultCard({
         </div>
       </motion.div>
 
+      <motion.div
+        variants={fade}
+        className="rounded-xl border border-border bg-muted/20 p-4"
+      >
+        <div className="mb-3 flex items-center gap-1.5">
+          <Shield className="size-4 text-foreground/50" />
+          <span className="text-xs uppercase tracking-wider text-foreground/50 font-medium">
+            Badge
+          </span>
+        </div>
+        <div className="space-y-3">
+          <div className="flex min-h-6 items-center">
+            <img
+              src={shieldsBadgeUrl}
+              alt={`${requestedName} size badge`}
+              className="h-5"
+            />
+          </div>
+          <code className="block max-h-24 overflow-auto break-all rounded-md border border-border/70 bg-background/80 p-2 font-mono text-[11px] text-foreground/80">
+            {shieldsBadgeUrl}
+          </code>
+        </div>
+      </motion.div>
+
       {subpaths.length > 0 && (
         <motion.div variants={fade} className="space-y-2">
           <div className="flex items-center gap-1.5">
@@ -566,6 +593,20 @@ function ResultCard({
       )}
     </motion.div>
   );
+}
+
+function buildBadgeApiUrl(packageName: string, version: string): string {
+  const encodedPath = packageName
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const params = new URLSearchParams({ type: "gzip", version });
+  return `https://api.sizepanic.com/badge/${encodedPath}?${params.toString()}`;
+}
+
+function buildShieldsUrl(apiUrl: string): string {
+  const params = new URLSearchParams({ url: apiUrl });
+  return `https://img.shields.io/endpoint?${params.toString()}`;
 }
 
 function SizeCell({

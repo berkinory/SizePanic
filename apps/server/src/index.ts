@@ -101,6 +101,10 @@ async function boot() {
     return new URL(req.url).pathname.includes("bundle.analyzeBatch");
   }
 
+  function isBadgeRequest(req: Request): boolean {
+    return new URL(req.url).pathname.startsWith("/badge/");
+  }
+
   new Elysia()
     .use(badgePlugin)
     .use(
@@ -109,7 +113,33 @@ async function boot() {
         max: 20,
         errorResponse: "Too many requests. Please try again later.",
         generator: (req, server) => getClientIp(req, server),
-        skip: (req) => isBatchRequest(req),
+        skip: (req) => isBatchRequest(req) || isBadgeRequest(req),
+      })
+    )
+    .use(
+      rateLimit({
+        duration: 60_000,
+        max: 30,
+        errorResponse: new Response(
+          JSON.stringify({
+            schemaVersion: 1,
+            label: "sizepanic",
+            message: "rate limited",
+            color: "#f0883e",
+            labelColor: "#30363d",
+            style: "flat-square",
+            namedLogo: "npm",
+            isError: true,
+          }),
+          {
+            status: 429,
+            headers: {
+              "content-type": "application/json",
+            },
+          }
+        ),
+        generator: (req, server) => `badge:${getClientIp(req, server)}`,
+        skip: (req) => !isBadgeRequest(req),
       })
     )
     .use(
