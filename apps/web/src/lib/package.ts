@@ -1,5 +1,6 @@
 const VERSION_RE = /^[\d.*x^~>=< ||-]+/;
 const MAX_PACKAGE_JSON_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_BATCH_PACKAGE_COUNT = 50;
 const ALLOWED_PACKAGE_JSON_MIME_TYPES = new Set([
   "application/json",
   "text/json",
@@ -8,11 +9,16 @@ const ALLOWED_PACKAGE_JSON_MIME_TYPES = new Set([
 ]);
 const NON_NPM_PROTOCOL_PREFIXES = ["workspace:", "file:", "link:", "portal:"];
 
-export type PackageInput = { name: string; version?: string };
+export type PackageInput = {
+  name: string;
+  version?: string;
+  isDevDependency?: boolean;
+};
 
 export type AnalyzeSuccess = {
   packageName: string;
   packageVersion: string;
+  isDevDependency?: boolean;
   sizes: { raw: number; gzip: number; brotli: number };
   downloadTime: { slow3G: number; fast4G: number };
   duration: number;
@@ -36,12 +42,14 @@ export type AnalyzeBatchItem =
   | {
       packageName: string;
       packageVersion: string;
+      isDevDependency?: boolean;
       error: { code: string; message: string; subpaths?: string[] };
     };
 
 export type AnalyzeFailure = {
   packageName: string;
   packageVersion: string;
+  isDevDependency?: boolean;
   error: { code: string; message: string; subpaths?: string[] };
 };
 
@@ -172,7 +180,10 @@ export async function parsePackageJsonFile(
 
   const dependencies = toStringRecord(parsed.dependencies);
   const devDependencies = toStringRecord(parsed.devDependencies);
-  const merged = new Map<string, string>();
+  const merged = new Map<
+    string,
+    { version: string; isDevDependency: boolean }
+  >();
 
   for (const [name, version] of Object.entries(dependencies)) {
     const normalizedVersion = normalizeDependencyVersion(
@@ -181,7 +192,7 @@ export async function parsePackageJsonFile(
       catalogMap
     );
     if (!normalizedVersion) continue;
-    merged.set(name, normalizedVersion);
+    merged.set(name, { version: normalizedVersion, isDevDependency: false });
   }
 
   for (const [name, version] of Object.entries(devDependencies)) {
@@ -192,12 +203,20 @@ export async function parsePackageJsonFile(
       catalogMap
     );
     if (!normalizedVersion) continue;
-    merged.set(name, normalizedVersion);
+    merged.set(name, { version: normalizedVersion, isDevDependency: true });
   }
 
-  return Array.from(merged.entries())
-    .slice(0, 50)
-    .map(([name, version]) => ({ name, version }));
+  if (merged.size > MAX_BATCH_PACKAGE_COUNT) {
+    throw new Error(
+      `BATCH_LIMIT_EXCEEDED:${merged.size}:${MAX_BATCH_PACKAGE_COUNT}`
+    );
+  }
+
+  return Array.from(merged.entries()).map(([name, value]) => ({
+    name,
+    version: value.version,
+    isDevDependency: value.isDevDependency,
+  }));
 }
 
 export function buildSplat(input: PackageInput): string {

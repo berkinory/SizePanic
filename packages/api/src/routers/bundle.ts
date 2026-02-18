@@ -4,9 +4,10 @@ import { publicProcedure, router } from "../index";
 
 const SLOW_3G_KBPS = 50;
 const FAST_4G_KBPS = 1430;
+const FAST_4G_COLD_START_MS = 25;
 const MAX_PACKAGE_INPUT_LENGTH = 214;
 const MAX_VERSION_INPUT_LENGTH = 64;
-const MAX_BATCH_SIZE = 30;
+const MAX_BATCH_SIZE = 50;
 const BATCH_CONCURRENCY = 10;
 
 const PACKAGE_SPECIFIER_REGEX =
@@ -22,7 +23,8 @@ function isSafePackageSpecifier(value: string): boolean {
 }
 
 function downloadTime(bytes: number, kbps: number): number {
-  return Math.round((bytes / 1024 / kbps) * 1000);
+  if (bytes <= 0) return 0;
+  return Math.max(1, Math.ceil((bytes / 1024 / kbps) * 1000));
 }
 
 const versionSchema = z
@@ -45,6 +47,7 @@ const packageSchema = z.object({
       message: "Package name must be a valid npm package specifier",
     }),
   packageVersion: versionSchema,
+  isDevDependency: z.boolean().optional(),
 });
 
 async function processBatch<T, R>(
@@ -78,7 +81,8 @@ async function analyzeOne(
     analyzePackage: (name: string, version: string) => Promise<any>;
   },
   packageName: string,
-  packageVersion?: string
+  packageVersion?: string,
+  isDevDependency?: boolean
 ) {
   const version = ctx.resolveVersion(packageName, packageVersion);
   const result = await ctx.analyzePackage(packageName, version);
@@ -87,6 +91,7 @@ async function analyzeOne(
     return {
       packageName: result.packageName,
       packageVersion: result.packageVersion,
+      isDevDependency,
       error: {
         code: result.error.code,
         message: result.error.message,
@@ -100,11 +105,13 @@ async function analyzeOne(
   return {
     packageName: result.metadata.name,
     packageVersion: result.metadata.version,
+    isDevDependency,
     sizes: result.sizes,
     metadata: result.metadata,
     downloadTime: {
       slow3G: downloadTime(result.sizes.gzip, SLOW_3G_KBPS),
-      fast4G: downloadTime(result.sizes.gzip, FAST_4G_KBPS),
+      fast4G:
+        downloadTime(result.sizes.gzip, FAST_4G_KBPS) + FAST_4G_COLD_START_MS,
     },
     duration: result.duration,
   };
@@ -133,8 +140,8 @@ export const bundleRouter = router({
 
       return processBatch(
         deduped,
-        ({ packageName, packageVersion }) =>
-          analyzeOne(ctx, packageName, packageVersion),
+        ({ packageName, packageVersion, isDevDependency }) =>
+          analyzeOne(ctx, packageName, packageVersion, isDevDependency),
         BATCH_CONCURRENCY
       );
     }),

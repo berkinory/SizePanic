@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { trackEvent } from "@/lib/analytics";
 import {
   type AnalyzeBatchItem,
   type AnalyzeSuccess,
@@ -27,7 +28,6 @@ import {
   repoToUrl,
   updateBatchSessionResults,
 } from "@/lib/package";
-import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/batch/$id")({
@@ -66,12 +66,13 @@ function BatchPage() {
 
     hasTriggered.current = true;
     analyzeMutation.mutate(
-      {
-        packages: session.current.packages.map((p) => ({
-          packageName: p.name,
-          packageVersion: p.version,
-        })),
-      },
+        {
+          packages: session.current.packages.map((p) => ({
+            packageName: p.name,
+            packageVersion: p.version,
+            isDevDependency: p.isDevDependency,
+          })),
+        },
       {
         onSuccess: (data) => {
           if (!Array.isArray(data)) return;
@@ -82,7 +83,10 @@ function BatchPage() {
           const durations = batchResults
             .map((item) => ("duration" in item ? item.duration : 0))
             .filter((duration) => typeof duration === "number");
-          const totalDurationMs = durations.reduce((acc, value) => acc + value, 0);
+          const totalDurationMs = durations.reduce(
+            (acc, value) => acc + value,
+            0
+          );
 
           trackEvent("batch_analysis", {
             package_count: batchResults.length,
@@ -125,10 +129,11 @@ function BatchPage() {
             failure_count: session.current?.packages.length ?? 0,
             total_duration_ms: 0,
             avg_duration_ms: 0,
-            error_code:
-              error.message.toLowerCase().includes("too many requests")
-                ? "rate_limited"
-                : "transport_error",
+            error_code: error.message
+              .toLowerCase()
+              .includes("too many requests")
+              ? "rate_limited"
+              : "transport_error",
             error_message: error.message,
             packages_json: JSON.stringify(
               session.current?.packages.map((item) => ({
@@ -144,6 +149,13 @@ function BatchPage() {
             (msg.includes("unexpected token") && msg.includes("not valid json"))
           ) {
             toast.error("Too many requests. Please try again in a minute.");
+          } else if (
+            msg.includes("at most") &&
+            msg.includes("array")
+          ) {
+            toast.error(
+              "This package.json has too many dependencies for batch analysis. Please keep it to 50 or fewer."
+            );
           } else {
             toast.error("Something went wrong. Please try again.");
           }
@@ -296,9 +308,16 @@ function BatchPage() {
                             <p className="truncate font-mono text-base font-bold tracking-tight text-foreground">
                               {item.packageName}
                             </p>
-                            <p className="mt-0.5 font-mono text-xs text-primary">
-                              @{item.packageVersion}
-                            </p>
+                            <div className="mt-0.5 flex items-center gap-2">
+                              <p className="font-mono text-xs text-primary">
+                                @{item.packageVersion}
+                              </p>
+                              {item.isDevDependency && (
+                                <span className="rounded-md border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground/70">
+                                  dev
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <StatsStrip
@@ -354,6 +373,11 @@ function BatchPage() {
                           <span className="text-primary">
                             @{item.packageVersion}
                           </span>
+                          {item.isDevDependency && (
+                            <span className="ml-2 rounded-md border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground/70">
+                              dev
+                            </span>
+                          )}
                         </p>
                         <div className="mt-1.5 rounded-lg border border-destructive/25 bg-background/70 px-2.5 py-2">
                           <p className="text-[11px] text-foreground/40 mb-0.5 uppercase">

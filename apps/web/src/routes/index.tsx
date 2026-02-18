@@ -31,6 +31,7 @@ import {
   GITHUB_URL,
   INPUT_EXAMPLES,
   INSTALL_TICKER,
+  MAX_BATCH_PACKAGE_COUNT,
   parseInput,
   parsePackageJsonFile,
   saveBatchSession,
@@ -86,7 +87,17 @@ function HomeComponent() {
       const batchId = generateBatchId();
       saveBatchSession(batchId, { packages });
       void navigate({ to: "/batch/$id", params: { id: batchId } });
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("BATCH_LIMIT_EXCEEDED:")
+      ) {
+        toast.error(
+          `This package.json has too many dependencies for batch analysis. Please keep it to ${MAX_BATCH_PACKAGE_COUNT} or fewer.`
+        );
+        return;
+      }
+
       toast.error("Could not parse package.json");
     } finally {
       setIsParsingUpload(false);
