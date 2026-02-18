@@ -20,7 +20,7 @@ const SHIELDS_BASE = "https://img.shields.io/endpoint";
 function BadgeGeneratorPage() {
   const [packageName, setPackageName] = useState("react");
   const [debouncedPackageName, setDebouncedPackageName] = useState("react");
-  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>("flat");
+  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>("for-the-badge");
   const [logo, setLogo] = useState("");
 
   useEffect(() => {
@@ -120,7 +120,7 @@ function BadgeGeneratorPage() {
                   </span>
                   <div className="grid h-12 grid-cols-2 rounded-lg border border-border/70 bg-muted/30 p-1">
                     {(
-                      ["flat", "flat-square", "plastic", "for-the-badge"] as const
+                      ["for-the-badge", "flat-square", "flat", "plastic"] as const
                     ).map((item) => (
                       <button
                         key={item}
