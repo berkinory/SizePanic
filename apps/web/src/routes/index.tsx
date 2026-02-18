@@ -130,6 +130,7 @@ function HomeComponent() {
   return (
     <div className="relative flex flex-col items-center px-4 pt-10">
       <div className="pointer-events-none absolute inset-0 h-svh bg-[radial-gradient(ellipse_at_50%_40%,var(--primary)_0%,transparent_70%)] opacity-[0.03]" />
+      <div className="grain-overlay pointer-events-none absolute inset-0 h-svh" />
 
       <div className="flex min-h-svh flex-col items-center justify-center w-full">
         <motion.div
