@@ -20,7 +20,7 @@ const SHIELDS_BASE = "https://img.shields.io/endpoint";
 function BadgeGeneratorPage() {
   const [packageName, setPackageName] = useState("react");
   const [debouncedPackageName, setDebouncedPackageName] = useState("react");
-  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>("for-the-badge");
+  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>("flat-square");
   const [logo, setLogo] = useState("");
 
   useEffect(() => {

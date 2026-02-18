@@ -607,7 +607,7 @@ function buildBadgeApiUrl(packageName: string, version: string): string {
 function buildShieldsUrl(apiUrl: string): string {
   const params = new URLSearchParams({
     url: apiUrl,
-    style: "for-the-badge",
+    style: "flat-square",
   });
   return `https://img.shields.io/endpoint?${params.toString()}`;
 }

@@ -11,13 +11,9 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function sizeColor(bytes: number): string {
-  if (bytes < 5_120) return "#2ea043";
-  if (bytes < 15_360) return "#3fb950";
-  if (bytes < 30_720) return "#d29922";
-  if (bytes < 61_440) return "#f0883e";
-  return "#da3633";
-}
+const BADGE_COLOR = "#3fb950";
+const BADGE_LABEL_COLOR = "#30363d";
+const BADGE_STYLE = "flat-square";
 
 type SizeType = keyof BundleSizes;
 
@@ -26,9 +22,9 @@ function errorBadge(label: string, message: string) {
     schemaVersion: 1,
     label,
     message,
-    color: "#da3633",
-    labelColor: "#30363d",
-    style: "flat-square",
+    color: BADGE_COLOR,
+    labelColor: BADGE_LABEL_COLOR,
+    style: BADGE_STYLE,
     namedLogo: "npm",
     isError: true,
   };
@@ -56,10 +52,10 @@ async function handleBadge(
     return {
       schemaVersion: 1,
       label,
-      message: `${message} ${sizeType}`,
-      color: sizeColor(bytes),
-      labelColor: "#30363d",
-      style: "flat-square",
+      message,
+      color: BADGE_COLOR,
+      labelColor: BADGE_LABEL_COLOR,
+      style: BADGE_STYLE,
       namedLogo: "npm",
     };
   } catch (e) {

@@ -125,7 +125,7 @@ async function boot() {
             schemaVersion: 1,
             label: "sizepanic",
             message: "rate limited",
-            color: "#f0883e",
+            color: "#3fb950",
             labelColor: "#30363d",
             style: "flat-square",
             namedLogo: "npm",
