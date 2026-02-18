@@ -46,7 +46,6 @@ function getRedis(): Redis | null {
   const client = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
-    lazyConnect: true,
     connectTimeout: 1200,
     commandTimeout: 1200,
   });
@@ -73,7 +72,11 @@ function getFromMemory(key: string): BundleResponse | undefined {
   return entry.value;
 }
 
-function setToMemory(key: string, value: BundleResponse, ttlSeconds: number): void {
+function setToMemory(
+  key: string,
+  value: BundleResponse,
+  ttlSeconds: number
+): void {
   if (ttlSeconds <= 0) return;
   if (memoryCache.size >= MEMORY_MAX_ENTRIES) {
     const oldestKey = memoryCache.keys().next().value;
@@ -88,7 +91,11 @@ function setToMemory(key: string, value: BundleResponse, ttlSeconds: number): vo
   });
 }
 
-function cacheKey(packageName: string, packageVersion: string, subpath?: string): string {
+function cacheKey(
+  packageName: string,
+  packageVersion: string,
+  subpath?: string
+): string {
   const normalizedSubpath = subpath?.replace(/^\.\//, "") || "root";
   return `${CACHE_NAMESPACE}:${packageName}@${packageVersion}:${normalizedSubpath}:${BUILD_FINGERPRINT}`;
 }
@@ -109,7 +116,10 @@ export function getCacheTtlSeconds(requestedVersion: string): number {
   return 21600;
 }
 
-function getErrorTtlSeconds(response: BundleResponse, successTtlSeconds: number): number {
+function getErrorTtlSeconds(
+  response: BundleResponse,
+  successTtlSeconds: number
+): number {
   if (response.success) {
     return successTtlSeconds;
   }
@@ -131,7 +141,12 @@ function getErrorTtlSeconds(response: BundleResponse, successTtlSeconds: number)
     return 120;
   }
 
-  if (code === "TIMEOUT" || code === "UNKNOWN" || code === "BUNDLE_FAILED" || code === "FETCH_FAILED") {
+  if (
+    code === "TIMEOUT" ||
+    code === "UNKNOWN" ||
+    code === "BUNDLE_FAILED" ||
+    code === "FETCH_FAILED"
+  ) {
     return 60;
   }
 
@@ -172,7 +187,10 @@ export async function setCachedBundleResponse(
   subpath: string | undefined,
   response: BundleResponse
 ): Promise<void> {
-  const ttlSeconds = getErrorTtlSeconds(response, getCacheTtlSeconds(packageVersion));
+  const ttlSeconds = getErrorTtlSeconds(
+    response,
+    getCacheTtlSeconds(packageVersion)
+  );
   if (ttlSeconds <= 0) return;
 
   const key = cacheKey(packageName, packageVersion, subpath);
@@ -243,7 +261,11 @@ export async function waitForBundleCacheFill(
 
   const timeoutAt = Date.now() + 3500;
   while (Date.now() < timeoutAt) {
-    const cached = await getCachedBundleResponse(packageName, packageVersion, subpath);
+    const cached = await getCachedBundleResponse(
+      packageName,
+      packageVersion,
+      subpath
+    );
     if (cached) return cached;
     await Bun.sleep(120);
   }

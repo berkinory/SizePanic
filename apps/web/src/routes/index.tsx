@@ -4,12 +4,13 @@ import {
   PackageSearchIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
   FileText,
   Gauge,
   Layers,
+  Shield,
   Upload,
   Zap,
 } from "lucide-react";
@@ -169,15 +170,25 @@ function HomeComponent() {
                 ))}
               </motion.div>
             </div>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 mt-4 text-xs text-foreground/40 hover:text-foreground transition-colors"
-            >
-              <HugeiconsIcon icon={GithubIcon} size={16} strokeWidth={1.5} />
-              Star on GitHub
-            </a>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-foreground/40 transition-colors hover:text-foreground"
+              >
+                <HugeiconsIcon icon={GithubIcon} size={16} strokeWidth={1.5} />
+                Star on GitHub
+              </a>
+              <span className="text-foreground/20">•</span>
+              <Link
+                to="/badges"
+                className="inline-flex items-center gap-1.5 text-xs text-foreground/40 transition-colors hover:text-foreground"
+              >
+                <Shield className="size-3.5" />
+                Badge generator
+              </Link>
+            </div>
           </motion.div>
 
           <motion.div variants={fade} className="space-y-2">

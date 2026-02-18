@@ -65,7 +65,7 @@ export async function analyzePackage(
       const isQueueTimeout =
         error instanceof Error && error.message === "Queue wait timeout";
 
-      return {
+      const queueResponse: BundleResponse = {
         success: false,
         error: {
           code: isQueueTimeout ? "TIMEOUT" : "UNKNOWN",
@@ -81,6 +81,15 @@ export async function analyzePackage(
         jobId: request.jobId,
         timestamp: Date.now(),
       };
+
+      await setCachedBundleResponse(
+        request.packageName,
+        request.packageVersion,
+        request.subpath,
+        queueResponse
+      );
+
+      return queueResponse;
     }
 
     let response: BundleResponse;
