@@ -27,8 +27,6 @@ function errorBadge(label: string, message: string) {
     label,
     message,
     color: "red",
-    subject: label,
-    status: message,
     isError: true,
   };
 }
@@ -57,8 +55,6 @@ async function handleBadge(
       label,
       message,
       color: sizeColor(bytes),
-      subject: label,
-      status: message,
     };
   } catch (e) {
     return errorBadge(label, e instanceof Error ? e.message : "unknown error");

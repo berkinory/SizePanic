@@ -101,8 +101,8 @@ Current compose setup includes:
 
 Shields.io badge examples:
 
-![react gzip size](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.sizepanic.com%2Fbadge%2Freact%3Ftype%3Dgzip)
-![zod 4.1.13 brotli size](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.sizepanic.com%2Fbadge%2Fzod%3Fversion%3D4.1.13%26type%3Dbrotli)
+![react gzip size](https://img.shields.io/endpoint?url=https://api.sizepanic.com/badge/react%3Ftype%3Dgzip)
+![zod 4.1.13 brotli size](https://img.shields.io/endpoint?url=https://api.sizepanic.com/badge/zod%3Fversion%3D4.1.13%26type%3Dbrotli)
 
 Generate your badge now: https://sizepanic.com/badge
 
@@ -115,7 +115,3 @@ Generate your badge now: https://sizepanic.com/badge
 ## License
 
 Licensed under MIT. See `LICENSE` for details.
-
-```
-
-```
