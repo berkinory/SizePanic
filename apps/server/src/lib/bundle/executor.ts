@@ -3,6 +3,13 @@ import type { BundleRequest, BundleResponse } from "@SizePanic/api";
 import { nanoid } from "nanoid";
 import { spawn } from "node:child_process";
 
+import {
+  getCachedBundleResponse,
+  releaseBundleLock,
+  setCachedBundleResponse,
+  tryAcquireBundleLock,
+  waitForBundleCacheFill,
+} from "./cache";
 import { cleanup } from "./child/cleanup";
 import { bundleSemaphore } from "./concurrency";
 import { parsePackageName } from "./parse-package";
@@ -23,36 +30,85 @@ export async function analyzePackage(
     jobId,
   };
 
-  try {
-    await bundleSemaphore.acquire(QUEUE_TIMEOUT);
-  } catch (error) {
-    const isQueueFull =
-      error instanceof Error && error.message === "Queue is full";
-    const isQueueTimeout =
-      error instanceof Error && error.message === "Queue wait timeout";
+  const cached = await getCachedBundleResponse(
+    request.packageName,
+    request.packageVersion,
+    request.subpath
+  );
+  if (cached) {
+    return cached;
+  }
 
-    return {
-      success: false,
-      error: {
-        code: isQueueTimeout ? "TIMEOUT" : "UNKNOWN",
-        message: isQueueFull
-          ? "Server is busy right now. Please try again shortly."
-          : isQueueTimeout
-            ? `Server is busy right now. Queue wait exceeded ${QUEUE_TIMEOUT}ms`
-            : "Server is busy right now. Please try again shortly.",
-      },
-      duration: 0,
-      packageName: request.packageName,
-      packageVersion: request.packageVersion,
-      jobId: request.jobId,
-      timestamp: Date.now(),
-    };
+  const lock = await tryAcquireBundleLock(
+    request.packageName,
+    request.packageVersion,
+    request.subpath
+  );
+
+  if (!lock) {
+    const waited = await waitForBundleCacheFill(
+      request.packageName,
+      request.packageVersion,
+      request.subpath
+    );
+    if (waited) {
+      return waited;
+    }
   }
 
   try {
-    return await spawnChildProcess(request);
+    try {
+      await bundleSemaphore.acquire(QUEUE_TIMEOUT);
+    } catch (error) {
+      const isQueueFull =
+        error instanceof Error && error.message === "Queue is full";
+      const isQueueTimeout =
+        error instanceof Error && error.message === "Queue wait timeout";
+
+      const queueResponse: BundleResponse = {
+        success: false,
+        error: {
+          code: isQueueTimeout ? "TIMEOUT" : "UNKNOWN",
+          message: isQueueFull
+            ? "Server is busy right now. Please try again shortly."
+            : isQueueTimeout
+              ? `Server is busy right now. Queue wait exceeded ${QUEUE_TIMEOUT}ms`
+              : "Server is busy right now. Please try again shortly.",
+        },
+        duration: 0,
+        packageName: request.packageName,
+        packageVersion: request.packageVersion,
+        jobId: request.jobId,
+        timestamp: Date.now(),
+      };
+
+      await setCachedBundleResponse(
+        request.packageName,
+        request.packageVersion,
+        request.subpath,
+        queueResponse
+      );
+
+      return queueResponse;
+    }
+
+    let response: BundleResponse;
+    try {
+      response = await spawnChildProcess(request);
+    } finally {
+      bundleSemaphore.release();
+    }
+
+    await setCachedBundleResponse(
+      request.packageName,
+      request.packageVersion,
+      request.subpath,
+      response
+    );
+
+    return response;
   } finally {
-    bundleSemaphore.release();
+    await releaseBundleLock(lock);
   }
 }
 

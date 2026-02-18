@@ -18,6 +18,7 @@
     "dotenv": "catalog:",
     "elysia": "catalog:",
     "elysia-rate-limit": "^4.5.0",
+    "ioredis": "^5.8.2",
     "nanoid": "^5.1.6",
     "semver": "^7.7.4",
     "zod": "catalog:"

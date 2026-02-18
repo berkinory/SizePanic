@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as BadgesRouteImport } from './routes/badges'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PackageSplatRouteImport } from './routes/package/$'
 import { Route as BatchIdRouteImport } from './routes/batch/$id'
 
+const BadgesRoute = BadgesRouteImport.update({
+  id: '/badges',
+  path: '/badges',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,36 +37,47 @@ const BatchIdRoute = BatchIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/batch/$id': typeof BatchIdRoute
   '/package/$': typeof PackageSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/batch/$id': typeof BatchIdRoute
   '/package/$': typeof PackageSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/batch/$id': typeof BatchIdRoute
   '/package/$': typeof PackageSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/batch/$id' | '/package/$'
+  fullPaths: '/' | '/badges' | '/batch/$id' | '/package/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/batch/$id' | '/package/$'
-  id: '__root__' | '/' | '/batch/$id' | '/package/$'
+  to: '/' | '/badges' | '/batch/$id' | '/package/$'
+  id: '__root__' | '/' | '/badges' | '/batch/$id' | '/package/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BadgesRoute: typeof BadgesRoute
   BatchIdRoute: typeof BatchIdRoute
   PackageSplatRoute: typeof PackageSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/badges': {
+      id: '/badges'
+      path: '/badges'
+      fullPath: '/badges'
+      preLoaderRoute: typeof BadgesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BadgesRoute: BadgesRoute,
   BatchIdRoute: BatchIdRoute,
   PackageSplatRoute: PackageSplatRoute,
 }

@@ -8,6 +8,7 @@ It helps you understand the real bundle cost of dependencies before shipping by 
 
 - Analyze a single package (`name`, `name@version`, scoped packages, and subpaths)
 - Analyze many dependencies from a `package.json` upload
+- Generate badges for package size widgets
 - Show raw bytes, gzip bytes, and network-time estimates
 - Surface package metadata (license, links, dependency counts)
 - Track product analytics events on the web app (Databuddy)
@@ -96,18 +97,25 @@ Current compose setup includes:
 - `/tmp` mounted as `tmpfs` with size cap to reduce disk-abuse risk
 - Container healthchecks for both web and server
 
-## API Notes
+## Badge Guide
 
-- tRPC endpoint: `/trpc/*`
-- Basic health response: `GET /` -> `OK`
+Shields.io badge examples:
+
+![react gzip size](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.sizepanic.com%2Fbadge%2Freact%3Ftype%3Dgzip)
+![zod 4.1.13 brotli size](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.sizepanic.com%2Fbadge%2Fzod%3Fversion%3D4.1.13%26type%3Dbrotli)
+
+Generate your badge now: https://sizepanic.com/badge
 
 ## Security Notes
 
 - Input validation is enforced via zod in the API layer.
 - Server-side analysis uses bounded concurrency and queue timeouts.
 - Batch analysis has upper limits to reduce abuse impact.
-- Badge endpoints are currently disabled in server boot wiring (code remains in repo).
 
 ## License
 
 Licensed under MIT. See `LICENSE` for details.
+
+```
+
+```

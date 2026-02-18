@@ -8,6 +8,7 @@ import { rateLimit } from "elysia-rate-limit";
 import { spawn } from "node:child_process";
 import { isIP } from "node:net";
 
+import { badgePlugin } from "./lib/badge";
 import { runBundleChildFromStdin } from "./lib/bundle/child/bundle";
 import { analyzePackage } from "./lib/bundle/executor";
 import { resolveVersion } from "./lib/bundle/version";
@@ -101,6 +102,7 @@ async function boot() {
   }
 
   new Elysia()
+    .use(badgePlugin)
     .use(
       rateLimit({
         duration: 60_000,
