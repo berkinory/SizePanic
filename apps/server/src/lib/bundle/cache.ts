@@ -18,6 +18,8 @@ const BUILD_FINGERPRINT = [
   "minify-true",
   "ignore-scripts",
   "omit-peer-optional",
+  "gzip-level-6",
+  "brotli-q5",
 ].join("|");
 
 interface MemoryEntry {
