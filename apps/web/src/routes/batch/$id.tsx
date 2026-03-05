@@ -25,6 +25,7 @@ import {
   formatBytes,
   formatMs,
   loadBatchSession,
+  MAX_BATCH_PACKAGE_COUNT,
   repoToUrl,
   updateBatchSessionResults,
 } from "@/lib/package";
@@ -154,7 +155,7 @@ function BatchPage() {
             msg.includes("array")
           ) {
             toast.error(
-              "This package.json has too many dependencies for batch analysis. Please keep it to 30 or fewer."
+              `This package.json has too many dependencies for batch analysis. Please keep it to ${MAX_BATCH_PACKAGE_COUNT} or fewer.`
             );
           } else {
             toast.error("Something went wrong. Please try again.");
