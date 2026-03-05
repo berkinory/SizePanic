@@ -112,7 +112,8 @@ export const badgePlugin = new Elysia({ name: "badge" }).get(
   "/badge/*",
   async ({ params, query, set }) => {
     set.headers["cache-control"] = "public, max-age=86400";
-    const name = params["*"];
+    const rawName = params["*"];
+    const name = rawName ? decodeURIComponent(rawName) : "";
     if (!name) {
       return errorBadge(
         {
