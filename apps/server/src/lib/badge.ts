@@ -17,33 +17,75 @@ const BADGE_STYLE = "flat-square";
 
 type SizeType = keyof BundleSizes;
 
-function errorBadge(label: string, message: string) {
+type BadgeQuery = {
+  version?: string;
+  type?: string;
+  label?: string;
+  color?: string;
+  labelColor?: string;
+};
+
+type BadgeAppearance = {
+  label: string;
+  color: string;
+  labelColor: string;
+};
+
+function normalizeColor(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return fallback;
+
+  const maybeHex = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
+  if (/^[0-9a-fA-F]{3}$/.test(maybeHex) || /^[0-9a-fA-F]{6}$/.test(maybeHex)) {
+    return `#${maybeHex.toLowerCase()}`;
+  }
+
+  if (/^[a-zA-Z][a-zA-Z0-9-]{1,30}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  return fallback;
+}
+
+function normalizeLabel(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return fallback;
+  return trimmed.slice(0, 48);
+}
+
+function resolveSizeType(type: string | undefined): SizeType {
+  if (type === "raw") return "raw";
+  if (type === "brotli") return "brotli";
+  return "gzip";
+}
+
+function errorBadge(appearance: BadgeAppearance, message: string) {
   return {
     schemaVersion: 1,
-    label,
+    label: appearance.label,
     message,
-    color: BADGE_COLOR,
-    labelColor: BADGE_LABEL_COLOR,
+    color: appearance.color,
+    labelColor: appearance.labelColor,
     style: BADGE_STYLE,
     namedLogo: "npm",
     isError: true,
   };
 }
 
-async function handleBadge(
-  name: string,
-  query: { version?: string; type?: string }
-) {
-  const sizeType: SizeType =
-    query.type === "brotli" || query.type === "raw" ? query.type : "gzip";
-  const label = name;
+async function handleBadge(name: string, query: BadgeQuery) {
+  const sizeType = resolveSizeType(query.type);
+  const appearance: BadgeAppearance = {
+    label: normalizeLabel(query.label, name),
+    color: normalizeColor(query.color, BADGE_COLOR),
+    labelColor: normalizeColor(query.labelColor, BADGE_LABEL_COLOR),
+  };
 
   try {
     const version = resolveVersion(name, query.version);
     const result = await analyzePackage(name, version);
 
     if (!result.success) {
-      return errorBadge(label, result.error.message);
+      return errorBadge(appearance, result.error.message);
     }
 
     const bytes = result.sizes[sizeType];
@@ -51,15 +93,18 @@ async function handleBadge(
 
     return {
       schemaVersion: 1,
-      label,
+      label: appearance.label,
       message,
-      color: BADGE_COLOR,
-      labelColor: BADGE_LABEL_COLOR,
+      color: appearance.color,
+      labelColor: appearance.labelColor,
       style: BADGE_STYLE,
       namedLogo: "npm",
     };
   } catch (e) {
-    return errorBadge(label, e instanceof Error ? e.message : "unknown error");
+    return errorBadge(
+      appearance,
+      e instanceof Error ? e.message : "unknown error"
+    );
   }
 }
 
@@ -69,7 +114,14 @@ export const badgePlugin = new Elysia({ name: "badge" }).get(
     set.headers["cache-control"] = "public, max-age=86400";
     const name = params["*"];
     if (!name) {
-      return errorBadge("SizePanic", "Missing package");
+      return errorBadge(
+        {
+          label: "SizePanic",
+          color: BADGE_COLOR,
+          labelColor: BADGE_LABEL_COLOR,
+        },
+        "Missing package"
+      );
     }
     return handleBadge(name, query);
   }

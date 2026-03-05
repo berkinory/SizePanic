@@ -368,6 +368,7 @@ function ResultCard({
   const router = useRouter();
   const apiBadgeUrl = buildBadgeApiUrl(requestedName, result.packageVersion);
   const shieldsBadgeUrl = buildShieldsUrl(apiBadgeUrl);
+  const badgeMarkdown = `![SizePanic badge](${shieldsBadgeUrl})`;
 
   const githubUrl = repoToUrl(result.metadata.repository);
   const hasLinks =
@@ -553,7 +554,7 @@ function ResultCard({
             />
           </div>
           <code className="block max-h-24 overflow-auto break-all rounded-md border border-border/70 bg-background/80 p-2 font-mono text-[11px] text-foreground/80">
-            {shieldsBadgeUrl}
+            {badgeMarkdown}
           </code>
         </div>
       </motion.div>

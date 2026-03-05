@@ -1,8 +1,7 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Shield } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-
-import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { Input } from "@/components/ui/input";
 import { parseInput } from "@/lib/package";
@@ -13,6 +12,7 @@ export const Route = createFileRoute("/badges")({
 });
 
 type BadgeStyle = "flat" | "flat-square" | "plastic" | "for-the-badge";
+type BadgeMetric = "minified" | "brotli" | "raw";
 
 const API_BASE = "https://api.sizepanic.com";
 const SHIELDS_BASE = "https://img.shields.io/endpoint";
@@ -21,7 +21,11 @@ function BadgeGeneratorPage() {
   const [packageName, setPackageName] = useState("react");
   const [debouncedPackageName, setDebouncedPackageName] = useState("react");
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>("flat-square");
+  const [badgeMetric, setBadgeMetric] = useState<BadgeMetric>("minified");
   const [logo, setLogo] = useState("");
+  const [badgeLabel, setBadgeLabel] = useState("");
+  const [badgeColor, setBadgeColor] = useState("3fb950");
+  const [badgeLabelColor, setBadgeLabelColor] = useState("30363d");
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -40,12 +44,21 @@ function BadgeGeneratorPage() {
       .split("/")
       .map((segment) => encodeURIComponent(segment))
       .join("/");
-    const params = new URLSearchParams({ type: "gzip" });
+    const params = new URLSearchParams({ type: badgeMetric });
     if (parsedInput.version) {
       params.set("version", parsedInput.version);
     }
+    if (badgeLabel.trim()) {
+      params.set("label", badgeLabel.trim());
+    }
+    if (badgeColor.trim()) {
+      params.set("color", badgeColor.trim());
+    }
+    if (badgeLabelColor.trim()) {
+      params.set("labelColor", badgeLabelColor.trim());
+    }
     return `${API_BASE}/badge/${encodedPath}?${params.toString()}`;
-  }, [parsedInput]);
+  }, [parsedInput, badgeMetric, badgeLabel, badgeColor, badgeLabelColor]);
 
   const shieldsUrl = useMemo(() => {
     if (!apiUrl) return "";
@@ -60,6 +73,11 @@ function BadgeGeneratorPage() {
 
     return `${SHIELDS_BASE}?${shieldsParams.toString()}`;
   }, [apiUrl, badgeStyle, logo]);
+
+  const badgeMarkdown = useMemo(() => {
+    if (!shieldsUrl) return "";
+    return `![SizePanic badge](${shieldsUrl})`;
+  }, [shieldsUrl]);
 
   return (
     <div className="relative min-h-svh overflow-hidden px-4 py-8 sm:py-10">
@@ -108,7 +126,8 @@ function BadgeGeneratorPage() {
                   placeholder="@tanstack/react-query"
                   className={cn(
                     "h-12 rounded-xl font-mono",
-                    !isValidName && "border-destructive/40 ring-2 ring-destructive/20"
+                    !isValidName &&
+                      "border-destructive/40 ring-2 ring-destructive/20"
                   )}
                 />
               </label>
@@ -120,7 +139,12 @@ function BadgeGeneratorPage() {
                   </span>
                   <div className="grid h-12 grid-cols-2 rounded-lg border border-border/70 bg-muted/30 p-1">
                     {(
-                      ["for-the-badge", "flat-square", "flat", "plastic"] as const
+                      [
+                        "for-the-badge",
+                        "flat-square",
+                        "flat",
+                        "plastic",
+                      ] as const
                     ).map((item) => (
                       <button
                         key={item}
@@ -140,8 +164,63 @@ function BadgeGeneratorPage() {
                 </label>
 
                 <label>
+                  <span className="mb-1.5 block font-mono text-xs text-foreground/55">
+                    Size Metric
+                  </span>
+                  <div className="grid h-12 grid-cols-3 rounded-lg border border-border/70 bg-muted/30 p-1">
+                    {(
+                      [
+                        ["minified", "Min+Gzip"],
+                        ["brotli", "Min+Brotli"],
+                        ["raw", "Raw"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setBadgeMetric(value)}
+                        className={cn(
+                          "cursor-pointer rounded-md font-mono text-[11px] transition-all",
+                          badgeMetric === value
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground/60 hover:bg-muted/60 hover:text-foreground"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+
+                <label>
+                  <span className="mb-1.5 block font-mono text-xs text-foreground/55">
+                    Left Label
+                  </span>
+                  <Input
+                    value={badgeLabel}
+                    onChange={(event) => setBadgeLabel(event.target.value)}
+                    placeholder="bundle size"
+                    className="h-12 rounded-xl font-mono"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1.5 block font-mono text-xs text-foreground/55">
+                    Left Color
+                  </span>
+                  <Input
+                    value={badgeLabelColor}
+                    onChange={(event) => setBadgeLabelColor(event.target.value)}
+                    placeholder="30363d or black"
+                    className="h-12 rounded-xl font-mono"
+                  />
+                </label>
+
+                <label>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <span className="font-mono text-xs text-foreground/55">Logo</span>
+                    <span className="font-mono text-xs text-foreground/55">
+                      Size Logo
+                    </span>
                     <a
                       href="https://simpleicons.org/"
                       target="_blank"
@@ -154,7 +233,19 @@ function BadgeGeneratorPage() {
                   <Input
                     value={logo}
                     onChange={(event) => setLogo(event.target.value)}
-                    placeholder="npm, react, github"
+                    placeholder="blank, npm, react, github"
+                    className="h-12 rounded-xl font-mono"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-1.5 block font-mono text-xs text-foreground/55">
+                    Right Color
+                  </span>
+                  <Input
+                    value={badgeColor}
+                    onChange={(event) => setBadgeColor(event.target.value)}
+                    placeholder="3fb950 or brightgreen"
                     className="h-12 rounded-xl font-mono"
                   />
                 </label>
@@ -181,7 +272,7 @@ function BadgeGeneratorPage() {
                     )}
                   </div>
                   <code className="mt-3 block max-h-24 overflow-auto break-all rounded-md border border-border/70 bg-background/80 p-2 font-mono text-[11px] text-foreground/80">
-                    {shieldsUrl || "-"}
+                    {badgeMarkdown || "-"}
                   </code>
                 </div>
               </div>
