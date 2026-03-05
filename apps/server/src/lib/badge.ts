@@ -111,10 +111,10 @@ async function handleBadge(name: string, query: BadgeQuery) {
 export const badgePlugin = new Elysia({ name: "badge" }).get(
   "/badge/*",
   async ({ params, query, set }) => {
-    set.headers["cache-control"] = "public, max-age=86400";
     const rawName = params["*"];
     const name = rawName ? decodeURIComponent(rawName) : "";
     if (!name) {
+      set.headers["cache-control"] = "public, max-age=60";
       return errorBadge(
         {
           label: "SizePanic",
@@ -124,6 +124,10 @@ export const badgePlugin = new Elysia({ name: "badge" }).get(
         "Missing package"
       );
     }
-    return handleBadge(name, query);
+    const badge = await handleBadge(name, query);
+    set.headers["cache-control"] = "isError" in badge
+      ? "public, max-age=60"
+      : "public, max-age=86400";
+    return badge;
   }
 );
