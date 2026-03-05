@@ -17,6 +17,27 @@ type BadgeMetric = "minified" | "brotli" | "min";
 const API_BASE = "https://api.sizepanic.com";
 const SHIELDS_BASE = "https://img.shields.io/endpoint";
 
+function toColorPickerValue(value: string, fallback: string): string {
+  const cleaned = value.trim().replace(/^#/, "").toLowerCase();
+  if (/^[0-9a-f]{6}$/.test(cleaned)) return `#${cleaned}`;
+  if (/^[0-9a-f]{3}$/.test(cleaned)) {
+    return `#${cleaned
+      .split("")
+      .map((char) => `${char}${char}`)
+      .join("")}`;
+  }
+  return fallback;
+}
+
+function formatHexInput(value: string): string {
+  const trimmed = value.trim();
+  const maybeHex = trimmed.replace(/^#/, "");
+  if (/^[0-9a-fA-F]{3}$/.test(maybeHex) || /^[0-9a-fA-F]{6}$/.test(maybeHex)) {
+    return maybeHex.toUpperCase();
+  }
+  return trimmed;
+}
+
 function BadgeGeneratorPage() {
   const [packageName, setPackageName] = useState("react");
   const [debouncedPackageName, setDebouncedPackageName] = useState("react");
@@ -24,8 +45,8 @@ function BadgeGeneratorPage() {
   const [badgeMetric, setBadgeMetric] = useState<BadgeMetric>("minified");
   const [logo, setLogo] = useState("");
   const [badgeLabel, setBadgeLabel] = useState("");
-  const [badgeColor, setBadgeColor] = useState("3fb950");
-  const [badgeLabelColor, setBadgeLabelColor] = useState("30363d");
+  const [badgeColor, setBadgeColor] = useState("3FB950");
+  const [badgeLabelColor, setBadgeLabelColor] = useState("30363D");
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -208,12 +229,25 @@ function BadgeGeneratorPage() {
                   <span className="mb-1.5 block font-mono text-xs text-foreground/55">
                     Left Color
                   </span>
-                  <Input
-                    value={badgeLabelColor}
-                    onChange={(event) => setBadgeLabelColor(event.target.value)}
-                    placeholder="30363d or black"
-                    className="h-12 rounded-xl font-mono"
-                  />
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={toColorPickerValue(badgeLabelColor, "#30363d")}
+                      onChange={(event) =>
+                        setBadgeLabelColor(event.target.value.slice(1).toUpperCase())
+                      }
+                      className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0"
+                      aria-label="Pick left badge color"
+                    />
+                    <Input
+                      value={badgeLabelColor}
+                      onChange={(event) =>
+                        setBadgeLabelColor(formatHexInput(event.target.value))
+                      }
+                      placeholder="30363d or black"
+                      className="h-12 rounded-xl pl-12 font-mono"
+                    />
+                  </div>
                 </label>
 
                 <label>
@@ -242,12 +276,25 @@ function BadgeGeneratorPage() {
                   <span className="mb-1.5 block font-mono text-xs text-foreground/55">
                     Right Color
                   </span>
-                  <Input
-                    value={badgeColor}
-                    onChange={(event) => setBadgeColor(event.target.value)}
-                    placeholder="3fb950 or brightgreen"
-                    className="h-12 rounded-xl font-mono"
-                  />
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={toColorPickerValue(badgeColor, "#3fb950")}
+                      onChange={(event) =>
+                        setBadgeColor(event.target.value.slice(1).toUpperCase())
+                      }
+                      className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0"
+                      aria-label="Pick right badge color"
+                    />
+                    <Input
+                      value={badgeColor}
+                      onChange={(event) =>
+                        setBadgeColor(formatHexInput(event.target.value))
+                      }
+                      placeholder="3fb950 or brightgreen"
+                      className="h-12 rounded-xl pl-12 font-mono"
+                    />
+                  </div>
                 </label>
               </div>
             </section>
