@@ -492,13 +492,20 @@ function ResultCard({
               Bundle size
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <SizeCell label="RAW" bytes={result.sizes.raw} />
+          <div className="grid gap-2 sm:grid-cols-3">
+            <SizeCell label="MINIFIED" bytes={result.sizes.raw} />
             <SizeCell
-              label="GZIP"
+              label="MIN+GZIP"
               bytes={result.sizes.gzip}
               savings={Math.round(
                 (1 - result.sizes.gzip / result.sizes.raw) * 100
+              )}
+            />
+            <SizeCell
+              label="MIN+BROTLI"
+              bytes={result.sizes.brotli}
+              savings={Math.round(
+                (1 - result.sizes.brotli / result.sizes.raw) * 100
               )}
             />
           </div>

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/badges")({
 });
 
 type BadgeStyle = "flat" | "flat-square" | "plastic" | "for-the-badge";
-type BadgeMetric = "minified" | "brotli" | "raw";
+type BadgeMetric = "minified" | "brotli" | "min";
 
 const API_BASE = "https://api.sizepanic.com";
 const SHIELDS_BASE = "https://img.shields.io/endpoint";
@@ -172,7 +172,7 @@ function BadgeGeneratorPage() {
                       [
                         ["minified", "Min+Gzip"],
                         ["brotli", "Min+Brotli"],
-                        ["raw", "Raw"],
+                        ["min", "Min"],
                       ] as const
                     ).map(([value, label]) => (
                       <button

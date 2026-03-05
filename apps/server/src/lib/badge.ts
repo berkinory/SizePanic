@@ -54,7 +54,7 @@ function normalizeLabel(value: string | undefined, fallback: string): string {
 }
 
 function resolveSizeType(type: string | undefined): SizeType {
-  if (type === "raw") return "raw";
+  if (type === "raw" || type === "min") return "raw";
   if (type === "brotli") return "brotli";
   return "gzip";
 }

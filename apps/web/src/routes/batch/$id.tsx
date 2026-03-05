@@ -425,8 +425,8 @@ function StatsStrip({
 }) {
   return (
     <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border/55 bg-background/70 lg:min-w-[21rem]">
-      <StatBlock label="RAW" value={raw} />
-      <StatBlock label="GZIP" value={gzip} withDivider />
+      <StatBlock label="MIN" value={raw} />
+      <StatBlock label="MIN+GZIP" value={gzip} withDivider />
       <StatBlock label="4G" value={fast} withDivider />
     </div>
   );
