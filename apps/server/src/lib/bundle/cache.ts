@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { valid, validRange } from "semver";
 
 const CACHE_NAMESPACE = "sp:bundle-cache:v1";
-const CACHE_SCHEMA = "schema-v1";
+const CACHE_SCHEMA = "schema-v2";
 const MEMORY_MAX_ENTRIES = 1000;
 const LOCK_TTL_SECONDS = 45;
 
@@ -149,10 +149,10 @@ function getErrorTtlSeconds(
     code === "BUNDLE_FAILED" ||
     code === "FETCH_FAILED"
   ) {
-    return 60;
+    return 0;
   }
 
-  return 60;
+  return 0;
 }
 
 export async function getCachedBundleResponse(

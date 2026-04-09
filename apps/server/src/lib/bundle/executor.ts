@@ -14,8 +14,17 @@ import { cleanup } from "./child/cleanup";
 import { bundleSemaphore } from "./concurrency";
 import { parsePackageName } from "./parse-package";
 
-const BUNDLE_TIMEOUT = 20_000;
+const BUNDLE_TIMEOUT = 45_000;
 const QUEUE_TIMEOUT = 30_000;
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds % 1 === 0 ? seconds : seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = Math.round(seconds % 60);
+  return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`;
+}
 
 export async function analyzePackage(
   packageName: string,
@@ -72,7 +81,7 @@ export async function analyzePackage(
           message: isQueueFull
             ? "Server is busy right now. Please try again shortly."
             : isQueueTimeout
-              ? `Server is busy right now. Queue wait exceeded ${QUEUE_TIMEOUT}ms`
+              ? `Server is busy right now. Queue wait exceeded ${formatDuration(QUEUE_TIMEOUT)}`
               : "Server is busy right now. Please try again shortly.",
         },
         duration: 0,
@@ -82,12 +91,14 @@ export async function analyzePackage(
         timestamp: Date.now(),
       };
 
-      await setCachedBundleResponse(
-        request.packageName,
-        request.packageVersion,
-        request.subpath,
-        queueResponse
-      );
+      if (!isQueueFull && !isQueueTimeout) {
+        await setCachedBundleResponse(
+          request.packageName,
+          request.packageVersion,
+          request.subpath,
+          queueResponse
+        );
+      }
 
       return queueResponse;
     }
@@ -115,6 +126,7 @@ export async function analyzePackage(
 function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
   return new Promise((resolve) => {
     const child = spawnBundleWorker();
+    const startTime = Date.now();
 
     let stdout = "";
     let timedOut = false;
@@ -141,9 +153,9 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
           success: false,
           error: {
             code: "TIMEOUT",
-            message: `Analysis exceeded ${BUNDLE_TIMEOUT}ms timeout`,
+            message: `Analysis exceeded ${formatDuration(BUNDLE_TIMEOUT)} timeout`,
           },
-          duration: BUNDLE_TIMEOUT,
+          duration: Date.now() - startTime,
           packageName: request.packageName,
           packageVersion: request.packageVersion,
           jobId: request.jobId,
