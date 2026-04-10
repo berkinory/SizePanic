@@ -234,7 +234,9 @@ function BadgeGeneratorPage() {
                       type="color"
                       value={toColorPickerValue(badgeLabelColor, "#30363d")}
                       onChange={(event) =>
-                        setBadgeLabelColor(event.target.value.slice(1).toUpperCase())
+                        setBadgeLabelColor(
+                          event.target.value.slice(1).toUpperCase()
+                        )
                       }
                       className="absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2 cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0"
                       aria-label="Pick left badge color"

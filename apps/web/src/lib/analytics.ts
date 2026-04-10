@@ -1,15 +1,9 @@
-import { track, trackError } from "@databuddy/sdk";
-
 export function trackEvent(
-  name: string,
-  properties?: Record<string, string | number | boolean | null | undefined>
-): void {
-  track(name, properties);
-}
+  _name: string,
+  _properties?: Record<string, string | number | boolean | null | undefined>
+): void {}
 
 export function trackAnalysisError(
-  message: string,
-  properties?: Record<string, string | number | boolean | null | undefined>
-): void {
-  trackError(message, properties);
-}
+  _message: string,
+  _properties?: Record<string, string | number | boolean | null | undefined>
+): void {}

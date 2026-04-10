@@ -125,9 +125,8 @@ export const badgePlugin = new Elysia({ name: "badge" }).get(
       );
     }
     const badge = await handleBadge(name, query);
-    set.headers["cache-control"] = "isError" in badge
-      ? "public, max-age=60"
-      : "public, max-age=86400";
+    set.headers["cache-control"] =
+      "isError" in badge ? "public, max-age=60" : "public, max-age=86400";
     return badge;
   }
 );

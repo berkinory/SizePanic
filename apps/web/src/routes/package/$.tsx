@@ -25,6 +25,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { trackEvent } from "@/lib/analytics";
 import {
   type AnalyzeFailure,
   type AnalyzeSuccess,
@@ -36,7 +37,6 @@ import {
   repoToUrl,
   stagger,
 } from "@/lib/package";
-import { trackEvent } from "@/lib/analytics";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/package/$")({

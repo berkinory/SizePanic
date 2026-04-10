@@ -67,13 +67,13 @@ function BatchPage() {
 
     hasTriggered.current = true;
     analyzeMutation.mutate(
-        {
-          packages: session.current.packages.map((p) => ({
-            packageName: p.name,
-            packageVersion: p.version,
-            isDevDependency: p.isDevDependency,
-          })),
-        },
+      {
+        packages: session.current.packages.map((p) => ({
+          packageName: p.name,
+          packageVersion: p.version,
+          isDevDependency: p.isDevDependency,
+        })),
+      },
       {
         onSuccess: (data) => {
           if (!Array.isArray(data)) return;
@@ -150,10 +150,7 @@ function BatchPage() {
             (msg.includes("unexpected token") && msg.includes("not valid json"))
           ) {
             toast.error("Too many requests. Please try again in a minute.");
-          } else if (
-            msg.includes("at most") &&
-            msg.includes("array")
-          ) {
+          } else if (msg.includes("at most") && msg.includes("array")) {
             toast.error(
               `This package.json has too many dependencies for batch analysis. Please keep it to ${MAX_BATCH_PACKAGE_COUNT} or fewer.`
             );
