@@ -1,8 +1,10 @@
-import { OpenPanel } from "@openpanel/web";
+const SCRIPT_ID = "rybbit-analytics-script";
 
-export const op = new OpenPanel({
-  clientId: "d3bf1200-c036-46d1-aec4-33f7f3a266e1",
-  apiUrl: "https://openpanel.mirac.dev/api",
-  trackScreenViews: true,
-  trackOutgoingLinks: true,
-});
+if (typeof document !== "undefined" && !document.getElementById(SCRIPT_ID)) {
+  const script = document.createElement("script");
+  script.id = SCRIPT_ID;
+  script.src = "https://rybbit-api.mirac.dev/api/script.js";
+  script.defer = true;
+  script.setAttribute("data-site-id", "112faccf2e6f");
+  document.head.appendChild(script);
+}
