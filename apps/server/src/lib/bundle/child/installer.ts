@@ -189,7 +189,7 @@ async function getDirectorySize(dir: string): Promise<number> {
   const glob = new Bun.Glob("**/*");
   let totalSize = 0;
 
-  for await (const path of glob.scan({ cwd: dir })) {
+  for await (const path of glob.scan({ cwd: dir, dot: true })) {
     const file = Bun.file(join(dir, path));
     totalSize += file.size;
   }

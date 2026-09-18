@@ -44,7 +44,7 @@ test("stops an installer that exceeds its temporary storage budget", async () =>
     await mkdir(fakeBin, { recursive: true });
     await Bun.write(
       executable,
-      `#!${process.execPath}\nawait Bun.write('oversized', Buffer.alloc(301 * 1024 * 1024));\nsetInterval(() => {}, 1000);\n`
+      `#!${process.execPath}\nawait Bun.write('.oversized', Buffer.alloc(301 * 1024 * 1024));\nsetInterval(() => {}, 1000);\n`
     );
     await chmod(executable, 0o755);
     process.env.PATH = `${fakeBin}:${previousPath}`;
