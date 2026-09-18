@@ -1,0 +1,107 @@
+# Coolify production deployment; data volumes must already exist.
+services:
+  server:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/server.Dockerfile
+    ports:
+    - 4000:4000
+    environment:
+    - NODE_ENV=production
+    - WEB_URL=${WEB_URL}
+    - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+    - TMPDIR=/tmp
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+    cpus: 2
+    mem_limit: 3g
+    tmpfs:
+    - /tmp:size=2048m
+    healthcheck:
+      test:
+      - CMD
+      - /bin/wget
+      - --spider
+      - -q
+      - http://localhost:4000
+      start_period: 1s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      private:
+        aliases:
+        - server
+        - SizePanic-server
+      coolify:
+        aliases:
+        - sizepanic-coolify-server
+    container_name: coolify-sizepanic-server
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+      - VITE_SERVER_URL=${VITE_SERVER_URL}
+    ports:
+    - 4002:4002
+    environment:
+    - NODE_ENV=production
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - 'bun -e "fetch(''http://localhost:4002'', {method: ''HEAD''}).then(r => process.exit(r.ok
+        ? 0 : 1)).catch(() => process.exit(1))"'
+      start_period: 1s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      private:
+        aliases:
+        - web
+        - SizePanic-web
+      coolify:
+        aliases:
+        - sizepanic-coolify-web
+    container_name: coolify-sizepanic-web
+  redis:
+    image: redis@sha256:862134b1b4ebe820d8b72ab090d30f8868467bc4d7fecd23422efb5596554efc
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+    - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      private:
+        aliases:
+        - redis
+        - sizepanic-redis
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    container_name: coolify-sizepanic-redis
+volumes:
+  redis-data:
+    external: true
+    name: sizepanic-production-d6eafu_redis-data
+networks:
+  private: {}
+  coolify:
+    external: true
