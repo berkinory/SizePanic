@@ -45,6 +45,7 @@ export async function installPackage(
     JSON.stringify({ dependencies: { [packageName]: version } })
   );
 
+  await mkdir(join(workDir, "tmp"), { recursive: true });
   await runBunInstall(workDir);
 
   const totalSize = await getDirectorySize(join(workDir, "node_modules"));
@@ -73,24 +74,80 @@ function runBunInstall(cwd: string): Promise<void> {
       ],
       {
         cwd,
+        // All installer state belongs to the job and is removed by job cleanup.
+        env: {
+          ...process.env,
+          BUN_INSTALL_CACHE_DIR: join(cwd, "cache"),
+          TMPDIR: join(cwd, "tmp"),
+        },
         stdio: ["ignore", "ignore", "pipe"],
       }
     );
 
     let stderr = "";
     let timedOut = false;
+    let sizeExceeded = false;
+    let checkingSize = false;
+    let finished = false;
+    let sizeCheckError: unknown;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const terminate = () => {
+      if (finished) return;
+      child.kill("SIGTERM");
+      killTimer ??= setTimeout(() => child.kill("SIGKILL"), 1000);
+    };
+    // Bound cache + extraction space during installation, not just the final package.
+    const monitor = setInterval(async () => {
+      if (checkingSize) return;
+      checkingSize = true;
+      try {
+        if ((await getDirectorySize(cwd)) > 300 * 1024 * 1024) {
+          sizeExceeded = true;
+          terminate();
+        }
+      } catch (error) {
+        sizeCheckError = error;
+        terminate();
+      } finally {
+        checkingSize = false;
+      }
+    }, 250);
 
     const timeout = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGTERM");
+      terminate();
     }, INSTALL_TIMEOUT);
 
     child.stderr.on("data", (data: Buffer) => {
-      stderr += data.toString();
+      stderr = (stderr + data.toString()).slice(-4096);
     });
 
-    child.on("close", (code) => {
+    const clearTimers = () => {
+      finished = true;
       clearTimeout(timeout);
+      clearTimeout(killTimer);
+      clearInterval(monitor);
+    };
+    child.on("error", (error) => {
+      clearTimers();
+      reject(
+        new InstallError(`Could not start package installer: ${error.message}`)
+      );
+    });
+    child.on("close", (code) => {
+      clearTimers();
+      if (sizeExceeded) {
+        reject(
+          new SizeLimitError(
+            "Package installation exceeds temporary storage budget"
+          )
+        );
+        return;
+      }
+      if (sizeCheckError) {
+        reject(new InstallError("Could not verify temporary storage usage"));
+        return;
+      }
 
       if (timedOut) {
         reject(new InstallError("Package installation timed out"));

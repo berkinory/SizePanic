@@ -20,7 +20,8 @@ const QUEUE_TIMEOUT = 30_000;
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   const seconds = ms / 1000;
-  if (seconds < 60) return `${seconds % 1 === 0 ? seconds : seconds.toFixed(1)}s`;
+  if (seconds < 60)
+    return `${seconds % 1 === 0 ? seconds : seconds.toFixed(1)}s`;
   const minutes = Math.floor(seconds / 60);
   const remaining = Math.round(seconds % 60);
   return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`;
@@ -133,8 +134,19 @@ function spawnChildProcess(request: BundleRequest): Promise<BundleResponse> {
 
     const timeout = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGTERM");
-      setTimeout(() => child.kill("SIGKILL"), 1000);
+      // Kill the installer too before removing its job directory.
+      if (process.platform !== "win32" && child.pid) {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+            console.error("Failed to kill bundle process group:", error);
+            child.kill("SIGKILL");
+          }
+        }
+      } else {
+        child.kill("SIGKILL");
+      }
     }, BUNDLE_TIMEOUT);
 
     child.stdout.on("data", (data: Buffer) => {
@@ -220,6 +232,7 @@ function spawnBundleWorker() {
       : ["--bundle-child"];
 
   return spawn(process.execPath, args, {
+    detached: process.platform !== "win32",
     cwd: process.cwd(),
     stdio: ["pipe", "pipe", "pipe"],
   });

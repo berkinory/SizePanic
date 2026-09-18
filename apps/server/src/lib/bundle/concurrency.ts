@@ -55,4 +55,4 @@ class Semaphore {
   }
 }
 
-export const bundleSemaphore = new Semaphore(10, 100);
+export const bundleSemaphore = new Semaphore(2, 100);

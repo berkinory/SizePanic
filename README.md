@@ -115,3 +115,14 @@ Generate your badge now: https://sizepanic.com/badge
 ## License
 
 Licensed under MIT. See `LICENSE` for details.
+
+### Bundle worker storage
+
+Each analysis owns its Bun download cache and extraction directory inside its
+`job-*` temporary directory. Success, failure and worker timeout remove that job
+state; no nightly shared-cache command is needed. Redis still caches completed
+analysis results. Two analyses run concurrently. Installation checks temporary
+usage every 250 ms and stops above 300 MiB per job; the final package limit is
+150 MiB. The container's 2 GiB tmpfs is the hard aggregate storage boundary
+(the polling limit may briefly overshoot during extraction). Worker timeouts kill
+the process group so installers cannot continue writing after cleanup.

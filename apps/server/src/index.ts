@@ -5,7 +5,6 @@ import { env } from "@SizePanic/env/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
-import { spawn } from "node:child_process";
 import { isIP } from "node:net";
 
 import { badgePlugin } from "./lib/badge";
@@ -13,51 +12,11 @@ import { runBundleChildFromStdin } from "./lib/bundle/child/bundle";
 import { analyzePackage } from "./lib/bundle/executor";
 import { resolveVersion } from "./lib/bundle/version";
 
-function scheduleCacheCleanup() {
-  const now = new Date();
-  const next = new Date(now);
-  next.setDate(next.getDate() + 1);
-  next.setHours(0, 0, 0, 0);
-  const ms = next.getTime() - now.getTime();
-
-  setTimeout(() => {
-    let rescheduled = false;
-    const reschedule = () => {
-      if (rescheduled) return;
-      rescheduled = true;
-      scheduleCacheCleanup();
-    };
-
-    let child: ReturnType<typeof spawn>;
-    try {
-      child = spawn("bun", ["pm", "cache", "rm"], { stdio: "ignore" });
-    } catch (error) {
-      console.warn("[cache-cleanup] skipped: bun is not available", error);
-      reschedule();
-      return;
-    }
-
-    child.on("error", (error) => {
-      console.warn("[cache-cleanup] failed to start", error);
-      reschedule();
-    });
-
-    child.on("close", (code) => {
-      console.log(`[cache-cleanup] bun pm cache rm — exit ${code}`);
-      reschedule();
-    });
-  }, ms);
-
-  console.log(`[cache-cleanup] Next cleanup in ${Math.round(ms / 1000 / 60)}m`);
-}
-
 async function boot() {
   if (process.argv.includes("--bundle-child")) {
     await runBundleChildFromStdin();
     process.exit(0);
   }
-
-  scheduleCacheCleanup();
 
   function getClientIp(req: Request, server: unknown): string {
     const headers = req.headers;
