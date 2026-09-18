@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { cleanup } from "./cleanup";
-import { installPackage } from "./installer";
+import { getDirectorySize, installPackage } from "./installer";
 
 test("installer cache is job-owned and removed with successful jobs", async () => {
   const jobId = `test-${crypto.randomUUID()}`;
@@ -58,3 +58,62 @@ test("stops an installer that exceeds its temporary storage budget", async () =>
   }
   expect(existsSync(path)).toBe(false);
 }, 10_000);
+
+test("storage accounting tolerates concurrent extraction directory removal", async () => {
+  const { mkdtemp, mkdir, rm, rename, writeFile } =
+    await import("node:fs/promises");
+  const root = await mkdtemp(join(tmpdir(), "installer-race-"));
+  let running = true;
+  const writer = (async () => {
+    while (running) {
+      const extracting = join(root, "extracting");
+      const installed = join(root, "installed");
+      await mkdir(join(extracting, "nested"), { recursive: true });
+      await writeFile(join(extracting, "nested", "data"), Buffer.alloc(4096));
+      await rename(extracting, installed);
+      await rm(installed, { recursive: true, force: true });
+    }
+  })();
+  try {
+    for (let i = 0; i < 100; i++) {
+      expect(await getDirectorySize(root)).toBeGreaterThanOrEqual(0);
+    }
+  } finally {
+    running = false;
+    await writer;
+    await rm(root, { recursive: true, force: true });
+  }
+}, 10_000);
+
+test("storage accounting measures regular files without following symlinks", async () => {
+  const { mkdtemp, mkdir, rm, symlink, writeFile } =
+    await import("node:fs/promises");
+  const root = await mkdtemp(join(tmpdir(), "installer-size-"));
+  try {
+    const job = join(root, "job");
+    await mkdir(job);
+    await writeFile(join(job, "data"), Buffer.alloc(123));
+    await writeFile(join(root, "outside"), Buffer.alloc(999));
+    await symlink(join(root, "outside"), join(job, "link"));
+    expect(await getDirectorySize(job)).toBe(123);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test.skipIf(process.getuid?.() === 0)(
+  "storage accounting propagates permission failures",
+  async () => {
+    const { chmod, mkdtemp, rm } = await import("node:fs/promises");
+    const root = await mkdtemp(join(tmpdir(), "installer-permission-"));
+    try {
+      await chmod(root, 0o000);
+      await expect(getDirectorySize(root)).rejects.toMatchObject({
+        code: "EACCES",
+      });
+    } finally {
+      await chmod(root, 0o700);
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+);

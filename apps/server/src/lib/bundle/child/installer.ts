@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { lstat, mkdir, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -185,13 +185,43 @@ async function readPeerDependencies(
   return Object.keys(pkg.peerDependencies || {});
 }
 
-async function getDirectorySize(dir: string): Promise<number> {
-  const glob = new Bun.Glob("**/*");
+function isRemovedPath(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (error.code === "ENOENT" || error.code === "ENOTDIR")
+  );
+}
+
+export async function getDirectorySize(dir: string): Promise<number> {
+  const pending = [dir];
   let totalSize = 0;
 
-  for await (const path of glob.scan({ cwd: dir, dot: true })) {
-    const file = Bun.file(join(dir, path));
-    totalSize += file.size;
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current) break;
+
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch (error) {
+      // The installer renames and removes extraction directories while we scan.
+      if (isRemovedPath(error)) continue;
+      throw error;
+    }
+
+    for (const entry of entries) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(path);
+      } else if (entry.isFile()) {
+        try {
+          totalSize += (await lstat(path)).size;
+        } catch (error) {
+          if (!isRemovedPath(error)) throw error;
+        }
+      }
+    }
   }
 
   return totalSize;
