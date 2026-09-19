@@ -272,3 +272,7 @@ export async function waitForBundleCacheFill(
     await Bun.sleep(120);
   }
 }
+
+export async function closeBundleCache(): Promise<void> {
+  if (redisClient) await redisClient.quit();
+}

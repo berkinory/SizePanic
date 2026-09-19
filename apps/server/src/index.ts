@@ -8,9 +8,11 @@ import { rateLimit } from "elysia-rate-limit";
 import { isIP } from "node:net";
 
 import { badgePlugin } from "./lib/badge";
+import { closeBundleCache } from "./lib/bundle/cache";
 import { runBundleChildFromStdin } from "./lib/bundle/child/bundle";
 import { analyzePackage } from "./lib/bundle/executor";
 import { resolveVersion } from "./lib/bundle/version";
+import { registerShutdown } from "./lib/shutdown";
 
 async function boot() {
   if (process.argv.includes("--bundle-child")) {
@@ -64,7 +66,7 @@ async function boot() {
     return new URL(req.url).pathname.startsWith("/badge/");
   }
 
-  new Elysia()
+  const app = new Elysia()
     .use(badgePlugin)
     .use(
       rateLimit({
@@ -136,6 +138,7 @@ async function boot() {
     .listen(4000, () => {
       console.log("Server is running on http://localhost:4000");
     });
+  registerShutdown(app, closeBundleCache);
 }
 
 boot().catch((error) => {
