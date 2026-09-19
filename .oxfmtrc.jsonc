@@ -19,6 +19,7 @@
     "order": "asc",
   },
   "ignorePatterns": [
+    "**/public/openanalytics-v0.8.0.js",
     "**/drizzle/**",
     "**/.next/**",
     "**/dist/**",
